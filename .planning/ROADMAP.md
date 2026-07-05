@@ -34,7 +34,7 @@
   2. Patient Footfall page displays mock daily and weekly charts using Recharts, plus a static peak hour graph.
   3. Doctor Attendance page displays a roster of mock doctors with status indicators.
   4. Daily Briefing page renders a detailed static mock text summary and action checklist.
-**Plans**: TBD
+**Plans**: [.planning/phases/02-high-fidelity-feature-mock-uis/01-PLAN.md](file:///c:/Users/ASUS/phc%20copilot/.planning/phases/02-high-fidelity-feature-mock-uis/01-PLAN.md), [.planning/phases/02-high-fidelity-feature-mock-uis/02-PLAN.md](file:///c:/Users/ASUS/phc%20copilot/.planning/phases/02-high-fidelity-feature-mock-uis/02-PLAN.md)
 **UI hint**: yes
 
 ### Phase 3: Local Persistence & Interactive Prototype
@@ -89,7 +89,7 @@
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | Phase 1: Project Setup & Core App Shell | 2/2 | Executed | 2026-07-05 |
-| Phase 2: High-Fidelity Feature Mock UIs | 0/0 | Not started | - |
+| Phase 2: High-Fidelity Feature Mock UIs | 0/2 | In progress | - |
 | Phase 3: Local Persistence & Interactive Prototype | 0/0 | Not started | - |
 | Phase 4: Google Gemini API Integration | 0/0 | Not started | - |
 | Phase 5: Google Cloud Firestore Database | 0/0 | Not started | - |
