@@ -22,9 +22,10 @@ export default function AppShell({ children }: AppShellProps) {
 
   const navItems = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { name: "Medicines", href: "/medicines", icon: Pill, disabled: true },
-    { name: "Footfall", href: "/footfall", icon: TrendingUp, disabled: true },
-    { name: "Attendance", href: "/attendance", icon: Users, disabled: true },
+    { name: "Briefing", href: "/briefing", icon: Sparkles },
+    { name: "Medicines", href: "/medicines", icon: Pill },
+    { name: "Footfall", href: "/footfall", icon: TrendingUp },
+    { name: "Attendance", href: "/attendance", icon: Users },
     { name: "Settings", href: "/settings", icon: Settings },
   ];
 
@@ -67,15 +68,6 @@ export default function AppShell({ children }: AppShellProps) {
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
-            if (item.disabled) {
-              return (
-                <div key={item.name} className="nav-item nav-item-disabled" title="Coming in Phase 2">
-                  <Icon className="nav-icon" size={20} />
-                  <span>{item.name}</span>
-                  <span className="badge-coming-soon">Soon</span>
-                </div>
-              );
-            }
             return (
               <Link
                 key={item.name}
@@ -126,14 +118,6 @@ export default function AppShell({ children }: AppShellProps) {
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
-          if (item.disabled) {
-            return (
-              <div key={item.name} className="mobile-nav-item mobile-nav-item-disabled" title="Coming in Phase 2">
-                <Icon size={20} />
-                <span className="mobile-label">{item.name}</span>
-              </div>
-            );
-          }
           return (
             <Link
               key={item.name}

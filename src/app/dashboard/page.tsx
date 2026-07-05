@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import AppShell from "@/components/AppShell";
 import {
   Sparkles,
@@ -16,7 +17,7 @@ import {
 } from "lucide-react";
 
 export default function DashboardPage() {
-  const [briefingOpen, setBriefingOpen] = useState(false);
+  const router = useRouter();
   const [tasks, setTasks] = useState([
     { id: 1, text: "Verify morning medicine stock registers", done: true },
     { id: 2, text: "Reallocate staff for predicted Pediatric footfall surge", done: false },
@@ -33,7 +34,7 @@ export default function DashboardPage() {
   };
 
   const handleGenerateBriefing = () => {
-    setBriefingOpen(true);
+    router.push("/briefing");
   };
 
   return (
@@ -49,23 +50,14 @@ export default function DashboardPage() {
             </div>
             <h1 className="hero-title">Daily Briefing & Forecast</h1>
             <p className="hero-description text-body-base">
-              {!briefingOpen
-                ? "Anticipating a 25% footfall increase in Pediatrics today. Medicine inventory shows critical alerts on ORS. Doctor attendance is fully covered."
-                : "Pediatric OPD footfall surge expected from 10:00 AM. Recommendations: Reallocate 1 nurse from General OPD to Pediatrics; Approve the pending ORS stock request immediately to prevent stockout by Tuesday."}
+              Anticipating a 25% footfall increase in Pediatrics today. Medicine inventory shows critical alerts on ORS. Doctor attendance is fully covered.
             </p>
 
             <div className="hero-action-row">
-              {!briefingOpen ? (
-                <button className="btn-ai-action" onClick={handleGenerateBriefing}>
-                  <Sparkles size={16} />
-                  <span>Generate Detailed Recommendations</span>
-                </button>
-              ) : (
-                <div className="briefing-action-success">
-                  <Info size={16} />
-                  <span>Recommendations Generated & Shared with Medical Officer</span>
-                </div>
-              )}
+              <button className="btn-ai-action" onClick={handleGenerateBriefing}>
+                <Sparkles size={16} />
+                <span>Generate Detailed Recommendations</span>
+              </button>
             </div>
           </div>
           
