@@ -22,7 +22,7 @@
   2. The sidebar navigation (desktop) collapses into a bottom navigation bar (mobile) successfully.
   3. The main App Shell displays the greeting header and current date.
   4. The Settings page displays forms for profile management and entering API keys.
-**Plans**: TBD
+**Plans**: [.planning/phases/01-project-setup-core-app-shell/01-PLAN.md](file:///c:/Users/ASUS/phc%20copilot/.planning/phases/01-project-setup-core-app-shell/01-PLAN.md), [.planning/phases/01-project-setup-core-app-shell/02-PLAN.md](file:///c:/Users/ASUS/phc%20copilot/.planning/phases/01-project-setup-core-app-shell/02-PLAN.md)
 **UI hint**: yes
 
 ### Phase 2: High-Fidelity Feature Mock UIs
@@ -88,7 +88,7 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| Phase 1: Project Setup & Core App Shell | 0/0 | Not started | - |
+| Phase 1: Project Setup & Core App Shell | 0/2 | In progress | - |
 | Phase 2: High-Fidelity Feature Mock UIs | 0/0 | Not started | - |
 | Phase 3: Local Persistence & Interactive Prototype | 0/0 | Not started | - |
 | Phase 4: Google Gemini API Integration | 0/0 | Not started | - |
