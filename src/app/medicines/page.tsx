@@ -1,23 +1,83 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import AppShell from "@/components/AppShell";
-import { mockMedicines } from "@/mocks/medicines";
+import { useMedicines } from "@/hooks/useMedicines";
 import { Medicine } from "@/types/store";
-import { Search, Filter, AlertTriangle, Sparkles, RefreshCw, X, Plus } from "lucide-react";
+import { Search, Filter, AlertTriangle, Sparkles, RefreshCw, X, Plus, Minus } from "lucide-react";
 
 export default function MedicinesPage() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [selectedMed, setSelectedMed] = useState<Medicine | null>(null);
+  const {
+    medicines,
+    loading,
+    searchQuery,
+    setSearchQuery,
+    filterStatus,
+    setFilterStatus,
+    addMedicine,
+    updateStock,
+    getAIReorderPrediction
+  } = useMedicines();
 
-  // Filter medicines list based on search and status dropdown
-  const filteredMedicines = mockMedicines.filter((med) => {
-    const matchesSearch = med.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter =
-      statusFilter === "all" || med.riskLevel === statusFilter;
-    return matchesSearch && matchesFilter;
-  });
+  const [selectedMed, setSelectedMed] = useState<Medicine | null>(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [predictionLoading, setPredictionLoading] = useState(false);
+  const [predictionData, setPredictionData] = useState<{
+    recommendedOrderQuantity: number;
+    urgency: string;
+    reasoning: string;
+    fallback: boolean;
+  } | null>(null);
+
+  // Trigger AI prediction query when a medicine is selected
+  useEffect(() => {
+    if (selectedMed) {
+      setPredictionLoading(true);
+      setPredictionData(null);
+      getAIReorderPrediction(selectedMed).then((res) => {
+        setPredictionData(res);
+        setPredictionLoading(false);
+      });
+    } else {
+      setPredictionData(null);
+    }
+  }, [selectedMed, getAIReorderPrediction]);
+
+  // Add Medicine Form state
+  const [newMedName, setNewMedName] = useState("");
+  const [newMedDosage, setNewMedDosage] = useState("Tablet");
+  const [newMedStock, setNewMedStock] = useState<number>(100);
+  const [newMedUsage, setNewMedUsage] = useState<number>(20);
+  const [newMedReorder, setNewMedReorder] = useState<number>(150);
+
+  const handleAddMedicineSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMedName) return;
+    await addMedicine({
+      name: newMedName,
+      dosageForm: newMedDosage,
+      stock: newMedStock,
+      dailyUsage: newMedUsage,
+      reorderLevel: newMedReorder,
+      lastReorderDate: new Date().toISOString().split('T')[0]
+    });
+    // Reset Form
+    setNewMedName("");
+    setNewMedDosage("Tablet");
+    setNewMedStock(100);
+    setNewMedUsage(20);
+    setNewMedReorder(150);
+    setIsAddModalOpen(false);
+  };
+
+  const handleStockAdjustment = async (id: string, currentStock: number, change: number) => {
+    const nextStock = Math.max(0, currentStock + change);
+    await updateStock(id, nextStock);
+    // If the selected med modal is open, sync it
+    if (selectedMed && selectedMed.id === id) {
+      setSelectedMed((prev) => prev ? { ...prev, stock: nextStock } : null);
+    }
+  };
 
   return (
     <AppShell>
@@ -28,7 +88,7 @@ export default function MedicinesPage() {
             <h1 className="page-title">Medicine Inventory</h1>
             <p className="page-subtitle">Monitor stock levels, daily rates, and predictive stockout thresholds.</p>
           </div>
-          <button className="btn-primary flex-center gap-2">
+          <button className="btn-primary flex-center gap-2" onClick={() => setIsAddModalOpen(true)}>
             <Plus size={16} />
             <span>Add Medicine</span>
           </button>
@@ -41,8 +101,8 @@ export default function MedicinesPage() {
             <input
               type="text"
               placeholder="Search medicines by name..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               className="search-input"
             />
           </div>
@@ -50,8 +110,8 @@ export default function MedicinesPage() {
           <div className="filter-box">
             <Filter size={16} className="filter-icon" />
             <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
               className="filter-select"
             >
               <option value="all">All Statuses</option>
@@ -63,9 +123,14 @@ export default function MedicinesPage() {
         </section>
 
         {/* Medicines Stock Cards Grid */}
-        {filteredMedicines.length > 0 ? (
+        {loading ? (
+          <div className="empty-state glass-container flex-center">
+            <RefreshCw size={24} className="spin-icon text-clinical-teal" />
+            <p className="empty-text" style={{ marginLeft: '12px' }}>Loading medicines stock...</p>
+          </div>
+        ) : medicines.length > 0 ? (
           <section className="medicines-grid">
-            {filteredMedicines.map((med) => {
+            {medicines.map((med) => {
               const days = med.daysRemaining.toFixed(1);
               const statusClass = `status-${med.riskLevel}`;
 
@@ -82,9 +147,29 @@ export default function MedicinesPage() {
                   </div>
 
                   <div className="med-details">
-                    <div className="detail-row">
+                    <div className="detail-row" style={{ alignItems: 'center' }}>
                       <span className="detail-label">Current Stock:</span>
-                      <span className="detail-value">{med.stock} units</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <button
+                          type="button"
+                          className="btn-stock-adjust"
+                          onClick={() => handleStockAdjustment(med.id, med.stock, -10)}
+                          title="Decrease 10 units"
+                          style={{ padding: '2px 6px', border: '1px solid var(--color-border-subtle)', borderRadius: '4px', background: '#f8fafc', cursor: 'pointer' }}
+                        >
+                          -10
+                        </button>
+                        <span className="detail-value font-semibold">{med.stock}</span>
+                        <button
+                          type="button"
+                          className="btn-stock-adjust"
+                          onClick={() => handleStockAdjustment(med.id, med.stock, 10)}
+                          title="Increase 10 units"
+                          style={{ padding: '2px 6px', border: '1px solid var(--color-border-subtle)', borderRadius: '4px', background: '#f8fafc', cursor: 'pointer' }}
+                        >
+                          +10
+                        </button>
+                      </div>
                     </div>
                     <div className="detail-row">
                       <span className="detail-label">Daily Consumption:</span>
@@ -115,6 +200,105 @@ export default function MedicinesPage() {
           </div>
         )}
 
+        {/* Add Medicine Modal Form */}
+        {isAddModalOpen && (
+          <div className="modal-overlay flex-center">
+            <div className="modal-content glass-container animate-scale-up" style={{ maxWidth: '450px' }}>
+              <div className="modal-header">
+                <div className="modal-title-wrapper">
+                  <Plus size={20} className="text-clinical-teal" />
+                  <h2 className="modal-title">Add New Medicine</h2>
+                </div>
+                <button onClick={() => setIsAddModalOpen(false)} className="btn-modal-close">
+                  <X size={18} />
+                </button>
+              </div>
+              <form onSubmit={handleAddMedicineSubmit} className="settings-form" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <label htmlFor="add-med-name" style={{ fontSize: '0.85rem', fontWeight: 600 }}>Medicine Name</label>
+                  <input
+                    id="add-med-name"
+                    type="text"
+                    required
+                    placeholder="e.g. Paracetamol 500mg"
+                    value={newMedName}
+                    onChange={(e) => setNewMedName(e.target.value)}
+                    className="settings-input"
+                    style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--color-border-subtle)' }}
+                  />
+                </div>
+
+                <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <label htmlFor="add-med-dosage" style={{ fontSize: '0.85rem', fontWeight: 600 }}>Dosage Form</label>
+                  <select
+                    id="add-med-dosage"
+                    value={newMedDosage}
+                    onChange={(e) => setNewMedDosage(e.target.value)}
+                    className="settings-input"
+                    style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--color-border-subtle)', background: '#fff' }}
+                  >
+                    <option value="Tablet">Tablet</option>
+                    <option value="Capsule">Capsule</option>
+                    <option value="Syrup">Syrup</option>
+                    <option value="Powder Sachet">Powder Sachet</option>
+                    <option value="Vial">Vial</option>
+                    <option value="Injection">Injection</option>
+                  </select>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <label htmlFor="add-med-stock" style={{ fontSize: '0.85rem', fontWeight: 600 }}>Initial Stock</label>
+                    <input
+                      id="add-med-stock"
+                      type="number"
+                      min="0"
+                      value={newMedStock}
+                      onChange={(e) => setNewMedStock(Number(e.target.value))}
+                      className="settings-input"
+                      style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--color-border-subtle)' }}
+                    />
+                  </div>
+                  <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <label htmlFor="add-med-usage" style={{ fontSize: '0.85rem', fontWeight: 600 }}>Daily Usage</label>
+                    <input
+                      id="add-med-usage"
+                      type="number"
+                      min="1"
+                      value={newMedUsage}
+                      onChange={(e) => setNewMedUsage(Number(e.target.value))}
+                      className="settings-input"
+                      style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--color-border-subtle)' }}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <label htmlFor="add-med-reorder" style={{ fontSize: '0.85rem', fontWeight: 600 }}>Reorder Level</label>
+                  <input
+                    id="add-med-reorder"
+                    type="number"
+                    min="0"
+                    value={newMedReorder}
+                    onChange={(e) => setNewMedReorder(Number(e.target.value))}
+                    className="settings-input"
+                    style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--color-border-subtle)' }}
+                  />
+                </div>
+
+                <div className="modal-footer" style={{ marginTop: '8px' }}>
+                  <button type="button" className="btn-secondary" onClick={() => setIsAddModalOpen(false)}>
+                    Cancel
+                  </button>
+                  <button type="submit" className="btn-primary">
+                    Create Item
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
         {/* AI Prediction Modal */}
         {selectedMed && (
           <div className="modal-overlay flex-center">
@@ -136,36 +320,54 @@ export default function MedicinesPage() {
                 <h3 className="modal-med-name">{selectedMed.name}</h3>
                 <p className="modal-med-dosage">{selectedMed.dosageForm}</p>
 
-                <div className="modal-stats-grid">
-                  <div className="m-stat-box">
-                    <span className="m-stat-label">Stockout Risk</span>
-                    <span className={`m-stat-value risk-${selectedMed.riskLevel}`}>
-                      {selectedMed.riskLevel.toUpperCase()}
-                    </span>
+                {predictionLoading ? (
+                  <div className="flex-center flex-col" style={{ padding: '40px 0', gap: '12px' }}>
+                    <RefreshCw size={24} className="spin-icon text-clinical-teal" />
+                    <p className="text-outline" style={{ fontSize: '0.85rem' }}>Gemini is projecting restock parameters...</p>
                   </div>
-                  <div className="m-stat-box">
-                    <span className="m-stat-label">Days Left</span>
-                    <span className="m-stat-value">{selectedMed.daysRemaining.toFixed(1)} Days</span>
-                  </div>
-                  <div className="m-stat-box">
-                    <span className="m-stat-label">Confidence Score</span>
-                    <span className="m-stat-value text-clinical-teal">94%</span>
-                  </div>
-                </div>
+                ) : predictionData ? (
+                  <>
+                    <div className="modal-stats-grid">
+                      <div className="m-stat-box">
+                        <span className="m-stat-label">Stockout Risk</span>
+                        <span className={`m-stat-value risk-${predictionData.urgency.toLowerCase()}`} style={{ fontWeight: 700 }}>
+                          {predictionData.urgency}
+                        </span>
+                      </div>
+                      <div className="m-stat-box">
+                        <span className="m-stat-label">Days Left</span>
+                        <span className="m-stat-value">{selectedMed.daysRemaining.toFixed(1)} Days</span>
+                      </div>
+                      <div className="m-stat-box">
+                        <span className="m-stat-label">Confidence Score</span>
+                        <span className="m-stat-value text-clinical-teal">94%</span>
+                      </div>
+                    </div>
 
-                <div className="recommendation-panel">
-                  <h4 className="rec-title">AI Recommendation</h4>
-                  <p className="rec-text text-body-sm">
-                    Reorder **{Math.max(selectedMed.reorderLevel - selectedMed.stock + 100, 150)} units** immediately. Based on daily consumption rates of {selectedMed.dailyUsage} units, a delivery delay exceeding 48 hours will result in a complete stockout. Recommended purchase order date: **Today**.
-                  </p>
-                </div>
+                    {predictionData.fallback && (
+                      <div className="fallback-warning-badge flex-center gap-1 text-warning font-semibold text-body-xs" style={{ display: 'inline-flex', background: 'rgba(217, 119, 6, 0.1)', border: '1px solid rgba(217, 119, 6, 0.3)', padding: '6px 12px', borderRadius: '4px', margin: '8px 0', width: '100%', boxSizing: 'border-box' }}>
+                        <AlertTriangle size={12} />
+                        <span>Live API offline. Showing simulated reorder parameters.</span>
+                      </div>
+                    )}
 
-                <div className="reasoning-panel">
-                  <h4 className="reasoning-title">Predictive Reasoning</h4>
-                  <p className="reasoning-text text-body-sm">
-                    OPD data projects a 15% increase in seasonal respiratory patients next week, raising expected Daily Consumption to ~{Math.round(selectedMed.dailyUsage * 1.15)} units. Historical lead time for replacement stock from central government store is 4 days.
-                  </p>
-                </div>
+                    <div className="recommendation-panel">
+                      <h4 className="rec-title">AI Recommendation</h4>
+                      <p className="rec-text text-body-sm">
+                        Reorder <strong>{predictionData.recommendedOrderQuantity} units</strong> immediately. Based on daily consumption rates of {selectedMed.dailyUsage} units, a delivery delay exceeding 48 hours will result in a complete stockout. Recommended purchase order date: <strong>Today</strong>.
+                      </p>
+                    </div>
+
+                    <div className="reasoning-panel">
+                      <h4 className="reasoning-title">Predictive Reasoning</h4>
+                      <p className="reasoning-text text-body-sm">
+                        {predictionData.reasoning}
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-outline text-center">Failed to load prediction details.</p>
+                )}
               </div>
 
               <div className="modal-footer">

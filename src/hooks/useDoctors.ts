@@ -52,12 +52,75 @@ export function useDoctors() {
     return doctors.filter((d) => d.status === 'absent');
   }, [doctors]);
 
+  const getAIStaffingImpact = useCallback(async (absents: Doctor[]) => {
+    try {
+      const { LocalSettingsRepository } = await import('../repositories/LocalSettingsRepository');
+      const settingsRepo = new LocalSettingsRepository();
+      const settings = await settingsRepo.getSettings();
+
+      if (settings.mode === 'live') {
+        const response = await fetch('/api/copilot', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-gemini-api-key': settings.apiKey,
+          },
+          body: JSON.stringify({
+            action: 'attendance',
+            payload: {
+              absentDoctors: absents,
+            },
+          }),
+        });
+
+        const data = await response.json();
+        if (data.success && data.data) {
+          return {
+            waitTimeIncrease: data.data.waitTimeIncrease,
+            riskAreas: data.data.riskAreas,
+            recommendations: data.data.recommendations,
+            fallback: false,
+          };
+        }
+      }
+    } catch (e) {
+      console.error('Error fetching AI staffing impact:', e);
+    }
+
+    // Simulator Fallback
+    const simulatedWait = absents.length * 15 + 5;
+    const simulatedDepts = Array.from(new Set(absents.map((d) => d.department))).join(', ');
+    const simulatedRecs = absents.map((doc) => {
+      let rec = `${doc.department} Cover: ${doc.name} (${doc.department}, ${doc.shift}) is ${doc.status.replace('_', ' ').toUpperCase()}.`;
+      if (doc.department === 'Pediatrics') {
+        rec += ' Suggest asking Dr. Preeti Patel to extend hours or opening an additional nurse triage register.';
+      } else if (doc.department === 'General OPD') {
+        rec += ' Recommend reallocating Gynecological or Dental specialists to handle general minor cases.';
+      } else if (doc.department === 'Gynecology') {
+        rec += ' Cover critical cases via nearby CHC or on-call emergency services.';
+      } else if (doc.department === 'Dental') {
+        rec += ' Suggest rescheduling elective dental follow-ups to tomorrow.';
+      } else {
+        rec += ' Cover via standard emergency protocols.';
+      }
+      return rec;
+    });
+
+    return {
+      waitTimeIncrease: simulatedWait,
+      riskAreas: simulatedDepts || 'None',
+      recommendations: simulatedRecs,
+      fallback: true,
+    };
+  }, []);
+
   return {
     doctors,
     loading,
     stats,
     absentDoctors,
     toggleAttendance,
+    getAIStaffingImpact,
     refresh: fetchDoctors,
   };
 }

@@ -1,20 +1,44 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import AppShell from "@/components/AppShell";
-import { mockDoctors } from "@/mocks/doctors";
-import { Users, UserCheck, UserX, AlertTriangle, Sparkles, Phone } from "lucide-react";
+import { useDoctors } from "@/hooks/useDoctors";
+import { Users, UserCheck, UserX, AlertTriangle, Sparkles, Phone, RefreshCw } from "lucide-react";
 
 export default function AttendancePage() {
-  // Compute summary metrics from mock data
-  const totalDoctors = mockDoctors.length;
-  const presentDoctors = mockDoctors.filter((doc) => doc.status === "present").length;
-  const absentDoctors = mockDoctors.filter((doc) => doc.status === "absent").length;
-  const onLeaveDoctors = mockDoctors.filter((doc) => doc.status === "on_leave").length;
-  const coveragePercent = totalDoctors > 0 ? Math.round((presentDoctors / totalDoctors) * 100) : 0;
+  const { doctors, stats, absentDoctors, toggleAttendance, getAIStaffingImpact, loading } = useDoctors();
+  const [impactLoading, setImpactLoading] = useState(false);
+  const [impactData, setImpactData] = useState<{
+    waitTimeIncrease: number;
+    riskAreas: string;
+    recommendations: string[];
+    fallback: boolean;
+  } | null>(null);
 
-  // Identify operational impacts based on current absentees
-  const absentDocsList = mockDoctors.filter((doc) => doc.status === "absent" || doc.status === "on_leave");
+  useEffect(() => {
+    if (absentDoctors.length > 0) {
+      setImpactLoading(true);
+      getAIStaffingImpact(absentDoctors).then((res) => {
+        setImpactData(res);
+        setImpactLoading(false);
+      });
+    } else {
+      setImpactData(null);
+    }
+  }, [absentDoctors, getAIStaffingImpact]);
+
+  if (loading) {
+    return (
+      <AppShell>
+        <div className="attendance-container animate-fade-in flex-center" style={{ minHeight: '400px', flexDirection: 'column' }}>
+          <RefreshCw size={24} className="spin-icon text-clinical-teal" />
+          <p style={{ marginTop: '12px', color: 'var(--color-outline)' }}>Loading doctor roster...</p>
+        </div>
+      </AppShell>
+    );
+  }
+
+  const absentDocsList = absentDoctors;
 
   return (
     <AppShell>
@@ -33,60 +57,74 @@ export default function AttendancePage() {
             <span className="card-icon status-ok"><UserCheck size={20} /></span>
             <div className="summary-info">
               <span className="summary-label">Doctors Present</span>
-              <span className="summary-value">{presentDoctors} / {totalDoctors}</span>
+              <span className="summary-value">{stats.presentCount} / {stats.total}</span>
             </div>
           </div>
           <div className="summary-card glass-container">
             <span className="card-icon status-err"><UserX size={20} /></span>
             <div className="summary-info">
               <span className="summary-label">Absent / On Leave</span>
-              <span className="summary-value">{absentDoctors + onLeaveDoctors}</span>
+              <span className="summary-value">{stats.absentCount + stats.leaveCount}</span>
             </div>
           </div>
           <div className="summary-card glass-container">
             <span className="card-icon status-info"><Users size={20} /></span>
             <div className="summary-info">
               <span className="summary-label">Total Coverage</span>
-              <span className="summary-value">{coveragePercent}%</span>
+              <span className="summary-value">{stats.coveragePercent}%</span>
             </div>
           </div>
         </section>
 
         {/* AI Impact Card */}
-        {absentDocsList.length > 0 && (
+        {absentDoctors.length > 0 && (
           <section className="ai-impact-section glass-container glow-pulsing-subtle">
             <div className="ai-impact-header">
               <Sparkles size={18} className="text-clinical-teal" />
               <h2 className="ai-impact-title">AI Operational Staffing Impact</h2>
             </div>
 
-            <div className="impact-grid">
-              <div className="impact-item">
-                <span className="impact-label">Estimated Wait Time Increase:</span>
-                <span className="impact-value text-err font-semibold">+35 Minutes</span>
+            {impactLoading ? (
+              <div className="flex-center flex-col" style={{ padding: '30px 0', gap: '8px' }}>
+                <RefreshCw size={20} className="spin-icon text-clinical-teal" />
+                <p className="text-outline" style={{ fontSize: '0.8rem' }}>Gemini is projecting roster wait-times...</p>
               </div>
-              <div className="impact-item">
-                <span className="impact-label">Primary Risk Area:</span>
-                <span className="impact-value font-semibold text-warning">
-                  General OPD (Evening Shift)
-                </span>
-              </div>
-            </div>
+            ) : impactData ? (
+              <>
+                <div className="impact-grid">
+                  <div className="impact-item">
+                    <span className="impact-label">Estimated Wait Time Increase:</span>
+                    <span className="impact-value text-err font-semibold">
+                      +{impactData.waitTimeIncrease} Minutes
+                    </span>
+                  </div>
+                  <div className="impact-item">
+                    <span className="impact-label">Primary Risk Areas:</span>
+                    <span className="impact-value font-semibold text-warning">
+                      {impactData.riskAreas}
+                    </span>
+                  </div>
+                </div>
 
-            <div className="allocation-recommendations bg-teal-container">
-              <div className="rec-bullet">
-                <span className="bullet-dot"></span>
-                <p className="rec-text text-body-sm">
-                  <strong>General OPD Cover:</strong> Dr. Ramesh Nair (General OPD, Evening) is ABSENT. Suggest asking Dr. Rajesh Sharma (morning OPD) to extend hours or reallocate Dr. Anita Desai (Gynecology, Afternoon) to support minor cases.
-                </p>
-              </div>
-              <div className="rec-bullet">
-                <span className="bullet-dot"></span>
-                <p className="rec-text text-body-sm">
-                  <strong>Dental Surge Coverage:</strong> Dr. Vikranth Mehta is on LEAVE. Reschedule elective dental follow-ups to Tuesday or direct urgent triages to the nearby CHC.
-                </p>
-              </div>
-            </div>
+                {impactData.fallback && (
+                  <div className="fallback-warning-badge flex-center gap-1 text-warning font-semibold text-body-xs" style={{ display: 'inline-flex', background: 'rgba(217, 119, 6, 0.1)', border: '1px solid rgba(217, 119, 6, 0.3)', padding: '6px 12px', borderRadius: '4px', margin: '8px 0', width: '100%', boxSizing: 'border-box' }}>
+                    <AlertTriangle size={12} />
+                    <span>Live API offline. Showing simulated roster impact parameters.</span>
+                  </div>
+                )}
+
+                <div className="allocation-recommendations bg-teal-container">
+                  {impactData.recommendations.map((rec, idx) => (
+                    <div key={idx} className="rec-bullet">
+                      <span className="bullet-dot"></span>
+                      <p className="rec-text text-body-sm">{rec}</p>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <p className="text-outline">Failed to calculate operational impact.</p>
+            )}
           </section>
         )}
 
@@ -94,7 +132,7 @@ export default function AttendancePage() {
         <section className="roster-section">
           <h2 className="section-title">Active Roster List</h2>
           <div className="roster-grid">
-            {mockDoctors.map((doc) => {
+            {doctors.map((doc) => {
               const statusClass = `status-${doc.status}`;
               const formattedStatus = doc.status.replace("_", " ").toUpperCase();
 
@@ -105,9 +143,15 @@ export default function AttendancePage() {
                       <h3 className="doc-name">{doc.name}</h3>
                       <p className="doc-dept">{doc.department} • {doc.specialty}</p>
                     </div>
-                    <span className={`status-chip ${statusClass}`}>
+                    <button
+                      type="button"
+                      onClick={() => toggleAttendance(doc.id)}
+                      className={`status-chip ${statusClass}`}
+                      title="Click to toggle Present/Absent"
+                      style={{ border: 'none', cursor: 'pointer', transition: 'all 0.2s' }}
+                    >
                       {formattedStatus}
-                    </span>
+                    </button>
                   </div>
 
                   <div className="doc-card-body">
