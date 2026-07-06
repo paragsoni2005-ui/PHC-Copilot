@@ -2,10 +2,10 @@
 
 ## Phases
 
-- [ ] **Phase 1: Project Setup & Core App Shell** - Scaffolds the Next.js app, configures the App Shell, and builds the Splash, Onboarding slides, basic Dashboard Shell, and Settings page with static layouts.
-- [ ] **Phase 2: High-Fidelity Feature Mock UIs** - Implements detailed static screens and mock data for Medicine Inventory, Patient Footfall charts, Doctor Attendance roster, and AI Daily Briefing.
+- [x] **Phase 1: Project Setup & Core App Shell** - Scaffolds the Next.js app, configures the App Shell, and builds the Splash, Onboarding slides, basic Dashboard Shell, and Settings page with static layouts.
+- [x] **Phase 2: High-Fidelity Feature Mock UIs** - Implements detailed static screens and mock data for Medicine Inventory, Patient Footfall charts, Doctor Attendance roster, and AI Daily Briefing.
 - [x] **Phase 3: Local Persistence & Interactive Prototype** - Integrates React hooks and `localStorage` to make all widgets interactive (adding medicines, updating stock, toggling attendance, recalculating metrics locally).
-- [ ] **Phase 4: Google Gemini API Integration** - Connects the frontend to secure serverless API routes that call Gemini 2.5 Flash to generate real operations briefings and analysis.
+- [x] **Phase 4: Google Gemini API Integration** - Connects the frontend to secure serverless API routes that call Gemini 2.5 Flash to generate real operations briefings and analysis.
 - [ ] **Phase 5: Google Cloud Firestore Database** - Migrates state management from `localStorage` to Google Cloud Firestore database for multi-device sync.
 - [ ] **Phase 6: Cloud Deployment & Responsive Polish** - Deploys to Firebase Hosting/Cloud Run, finalizes responsive layouts, and applies premium Material 3 micro-animations.
 
