@@ -35,4 +35,9 @@ export class LocalBriefingRepository implements IBriefingRepository {
     if (!this.isClient()) return;
     localStorage.removeItem(STORAGE_KEY);
   }
+
+  listen(callback: (data: string | null) => void): () => void {
+    this.getLatestBriefing().then(callback);
+    return () => {};
+  }
 }

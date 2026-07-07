@@ -1,40 +1,53 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Doctor } from '@/types/store';
 import { LocalDoctorRepository } from '../repositories/LocalDoctorRepository';
-
-const repo = new LocalDoctorRepository();
+import { FirestoreDoctorRepository } from '../repositories/FirestoreDoctorRepository';
+import { LocalSettingsRepository } from '../repositories/LocalSettingsRepository';
+import { IDoctorRepository } from '../repositories/IDoctorRepository';
 
 export function useDoctors() {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(true);
+  const [repo, setRepo] = useState<IDoctorRepository | null>(null);
 
-  const fetchDoctors = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await repo.getAll();
-      setDoctors(data);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
+  // Initialize repository based on active configurations
+  useEffect(() => {
+    const initRepo = async () => {
+      const settingsRepo = new LocalSettingsRepository();
+      const settings = await settingsRepo.getSettings();
+      if (settings.mode === 'live') {
+        setRepo(new FirestoreDoctorRepository());
+      } else {
+        setRepo(new LocalDoctorRepository());
+      }
+    };
+    initRepo();
   }, []);
 
+  // Subscribe to real-time updates
   useEffect(() => {
-    fetchDoctors();
-  }, [fetchDoctors]);
+    if (!repo) return;
+    setLoading(true);
+    const unsubscribe = repo.listen((data) => {
+      setDoctors(data);
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, [repo]);
 
   const toggleAttendance = useCallback(async (id: string) => {
+    if (!repo) throw new Error('Repository not initialized');
     const doc = doctors.find((d) => d.id === id);
     if (!doc) return;
     const newStatus: Doctor['status'] = doc.status === 'present' ? 'absent' : 'present';
     const updated = await repo.updateStatus(id, newStatus);
-    setDoctors((prev) => prev.map((d) => (d.id === id ? updated : d)));
-  }, [doctors]);
+    if (repo instanceof LocalDoctorRepository) {
+      setDoctors((prev) => prev.map((d) => (d.id === id ? updated : d)));
+    }
+  }, [doctors, repo]);
 
   const stats = useMemo(() => {
     const total = doctors.length;
-    // Count 'present' status vs others
     const presentCount = doctors.filter((d) => d.status === 'present').length;
     const absentCount = doctors.filter((d) => d.status === 'absent').length;
     const leaveCount = doctors.filter((d) => d.status === 'on_leave').length;
@@ -121,6 +134,14 @@ export function useDoctors() {
     absentDoctors,
     toggleAttendance,
     getAIStaffingImpact,
-    refresh: fetchDoctors,
+    refresh: () => {
+      if (repo) {
+        setLoading(true);
+        repo.getAll().then((data) => {
+          setDoctors(data);
+          setLoading(false);
+        });
+      }
+    },
   };
 }

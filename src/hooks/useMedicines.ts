@@ -1,42 +1,59 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Medicine } from '@/types/store';
 import { LocalMedicineRepository } from '../repositories/LocalMedicineRepository';
-
-const repo = new LocalMedicineRepository();
+import { FirestoreMedicineRepository } from '../repositories/FirestoreMedicineRepository';
+import { LocalSettingsRepository } from '../repositories/LocalSettingsRepository';
+import { IMedicineRepository } from '../repositories/IMedicineRepository';
 
 export function useMedicines() {
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all'); // all, critical, warning, safe
+  const [repo, setRepo] = useState<IMedicineRepository | null>(null);
 
-  const fetchMedicines = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await repo.getAll();
-      setMedicines(data);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
+  // Initialize correct repository based on API configuration mode
+  useEffect(() => {
+    const initRepo = async () => {
+      const settingsRepo = new LocalSettingsRepository();
+      const settings = await settingsRepo.getSettings();
+      if (settings.mode === 'live') {
+        setRepo(new FirestoreMedicineRepository());
+      } else {
+        setRepo(new LocalMedicineRepository());
+      }
+    };
+    initRepo();
   }, []);
 
+  // Listen to Firestore or Local updates in real-time
   useEffect(() => {
-    fetchMedicines();
-  }, [fetchMedicines]);
+    if (!repo) return;
+    setLoading(true);
+    const unsubscribe = repo.listen((data) => {
+      setMedicines(data);
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, [repo]);
 
   const addMedicine = useCallback(async (medicine: Omit<Medicine, 'id' | 'daysRemaining' | 'riskLevel'>) => {
+    if (!repo) throw new Error('Repository not initialized');
     const newMed = await repo.create(medicine);
-    setMedicines((prev) => [...prev, newMed]);
+    if (repo instanceof LocalMedicineRepository) {
+      setMedicines((prev) => [...prev, newMed]);
+    }
     return newMed;
-  }, []);
+  }, [repo]);
 
   const updateStock = useCallback(async (id: string, newStock: number) => {
+    if (!repo) throw new Error('Repository not initialized');
     const updated = await repo.update(id, { stock: newStock });
-    setMedicines((prev) => prev.map((m) => (m.id === id ? updated : m)));
+    if (repo instanceof LocalMedicineRepository) {
+      setMedicines((prev) => prev.map((m) => (m.id === id ? updated : m)));
+    }
     return updated;
-  }, []);
+  }, [repo]);
 
   const filteredMedicines = useMemo(() => {
     return medicines.filter((m) => {
@@ -60,7 +77,6 @@ export function useMedicines() {
 
   const getAIReorderPrediction = useCallback(async (medicine: Medicine) => {
     try {
-      const { LocalSettingsRepository } = await import('../repositories/LocalSettingsRepository');
       const { LocalFootfallRepository } = await import('../repositories/LocalFootfallRepository');
       const settingsRepo = new LocalSettingsRepository();
       const footfallRepo = new LocalFootfallRepository();
@@ -119,6 +135,14 @@ export function useMedicines() {
     updateStock,
     stats,
     getAIReorderPrediction,
-    refresh: fetchMedicines,
+    refresh: () => {
+      if (repo) {
+        setLoading(true);
+        repo.getAll().then((data) => {
+          setMedicines(data);
+          setLoading(false);
+        });
+      }
+    },
   };
 }

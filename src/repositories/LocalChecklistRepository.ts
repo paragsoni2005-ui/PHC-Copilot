@@ -41,4 +41,9 @@ export class LocalChecklistRepository implements IChecklistRepository {
     if (!this.isClient()) return;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   }
+
+  listen(callback: (data: ChecklistItem[]) => void): () => void {
+    this.getItems().then(callback);
+    return () => {};
+  }
 }

@@ -35,4 +35,9 @@ export class LocalDoctorRepository implements IDoctorRepository {
     }
     return list[index];
   }
+
+  listen(callback: (data: Doctor[]) => void): () => void {
+    this.getAll().then(callback);
+    return () => {};
+  }
 }

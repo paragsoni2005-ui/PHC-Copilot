@@ -88,4 +88,9 @@ export class LocalMedicineRepository implements IMedicineRepository {
     }
     return true;
   }
+
+  listen(callback: (data: Medicine[]) => void): () => void {
+    this.getAll().then(callback);
+    return () => {};
+  }
 }
