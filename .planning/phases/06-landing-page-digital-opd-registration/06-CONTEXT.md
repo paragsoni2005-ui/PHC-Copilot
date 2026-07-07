@@ -19,32 +19,22 @@ This phase implements the entry experience of PHC Copilot. It consists of:
 <decisions>
 ## Implementation Decisions
 
-### Landing Page & Navigational Flow
-- **D-01 (Role-Based CTA Navigation):** Introduce a clean landing page at the root route (`/`). The page contains two distinct paths:
-  - **Receptionist path:** CTAs navigate to `/opd-registration` to allow quick patient intake.
-  - **Medical Officer path:** CTAs navigate to `/dashboard` to allow monitoring.
-- **D-02 (Aesthetics & Animations):** Design a premium landing page using vanilla CSS glassmorphism, modern typography, and Framer Motion for hero illustrations and timelines.
-- **D-03 (Navigation Control):** The app shell sidebar or bottom navigation should hide or adapt when viewing the landing page to preserve the entry page layout.
+### Landing Page, Authentication & Onboarding
+- **D-01 (Standalone Public Portal):** Render the Landing Page at `/` as a completely standalone public view without the application App Shell (no sidebar, no bottom navigation). It will feature a premium responsive top navigation bar with links to sections (Vision, Features, Workflow, Impact) and "Get Started" triggers.
+- **D-02 (Role Selection & Auth Service):** Implement a centralized Role & Permission Service utilizing Firebase Authentication:
+  - **Receptionist:** Enters without password (using Firebase Anonymous Authentication or simple role selection), granting access *only* to `/opd-registration`.
+  - **Medical Officer:** Must authenticate using Firebase Auth Email/Password credentials to access `/dashboard`, `/medicines`, `/attendance`, `/briefing`, and `/settings`.
+- **D-03 (Role-Based Route Guards):** Restrict router access client-side based on the authenticated user role. Hide sidebar links, bottom navigation options, and edit buttons appropriately (e.g. Receptionists cannot see the sidebar, and Medical Officers cannot see/use edit/delete actions on `/opd-registration`).
+- **D-04 (Gated Onboarding):** If a newly logged-in Medical Officer has not completed the onboarding tutorial (`localStorage` check `phc_first_visit_complete`), redirect them to the 3-step onboarding flow before they can access the dashboard.
 
-### OPD Registration & Firestore Integration
-- **D-04 (Patients Collection Schema):** Store registered patients in a new Firestore collection named `patients`. Document fields must include:
-  - `patientId`: string (unique auto-generated ID)
-  - `name`: string (optional)
-  - `age`: number (required)
-  - `gender`: string (required)
-  - `village`: string (required)
-  - `phone`: string (optional)
-  - `department`: string (required)
-  - `symptoms`: string (required)
-  - `visitType`: 'new' | 'follow-up' (required)
-  - `registeredAt`: timestamp (auto-generated current date/time)
-  - `createdBy`: string (e.g., 'receptionist')
-  - `status`: string (e.g., 'waiting', 'completed')
-- **D-05 (Real-time Dashboard Integration):** Connect the patient registrations to the active dashboard metrics. Incrementing today's patient count must be updated in real time via Firestore `onSnapshot` listeners without manual refreshes.
-- **D-06 (Table Actions & Controls):** Today's Registrations table allows searching (by ID, Name, or Symptoms) and filtering (by Today/Yesterday, Department, Visit Type, and Gender).
+### Digital OPD Registration & Single Source of Truth
+- **D-05 (unified Patients Collection):** Reorganize patient data to use a single Firestore collection: `patients`. The seeder will populate 50-100 realistic patient documents spanning the past week (each with age, gender, department, symptoms, and registeredAt timestamps).
+- **D-06 (Dynamic Footfall Aggregation):** Refactor the Patient Footfall charts and statistics (daily/weekly counts, peak hours, predicted surgings) to aggregate dynamically from the `patients` collection's timestamps, removing the redundant `footfall` collection.
+- **D-07 (OPD Form Fields & Validation):** Build the registration form at `/opd-registration` validating required fields (Age, Gender, Department, Symptoms, Visit Type) and saving records immediately to Firestore. On registration, the dashboard metrics must increment in real time using `onSnapshot` listeners.
+- **D-08 (Search & Filter Table):** Implement a "Today's Registrations" table supporting client-side filtering (by Today/Yesterday, Department, Visit Type, Gender) and query search (by ID, Name, Symptoms).
 
 ### AI Integration
-- **D-07 (Gemini Input):** Patient registrations (specifically departments, symptoms, age, and gender) will feed directly into the Daily Briefing generation inputs to allow Gemini to analyze surge trends and disease alerts.
+- **D-09 (Gemini Surge Inputs):** Refactor the Gemini API proxy route to pull actual patient symptoms, age groups, and departments registered in the `patients` collection over the past week to generate accurate surges, alerts, and daily briefings.
 
 </decisions>
 
