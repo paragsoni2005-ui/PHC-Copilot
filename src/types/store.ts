@@ -35,3 +35,18 @@ export interface HourlyLoad {
   load: number; // Number of patients checked in during this hour
   capacity: number; // Max capacity threshold
 }
+
+export interface Patient {
+  patientId: string;
+  name?: string;
+  age: number;
+  gender: string;
+  village: string;
+  phone?: string;
+  department: string;
+  symptoms: string;
+  visitType: "new" | "follow-up";
+  registeredAt: any; // Firestore Timestamp or string
+  createdBy: string; // e.g. "receptionist"
+  status: string; // e.g. "waiting", "completed"
+}

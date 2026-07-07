@@ -1,5 +1,7 @@
 import { NextRequest } from 'next/server';
 import { GeminiService } from '@/services/GeminiService';
+import { db } from '@/lib/firebase';
+import { collection, getDocs, query, where, Timestamp } from 'firebase/firestore';
 
 export async function POST(request: NextRequest) {
   try {
@@ -45,7 +47,37 @@ export async function POST(request: NextRequest) {
     switch (action) {
       case 'briefing':
         const { medicines, doctors, footfall } = payload || {};
-        result = await GeminiService.generateBriefing(apiKey, medicines || [], doctors || [], footfall || {});
+        
+        // Fetch patient logs registered in the last 7 days from Firestore
+        let recentPatients: any[] = [];
+        try {
+          const cutoffDate = new Date();
+          cutoffDate.setDate(cutoffDate.getDate() - 7);
+          const q = query(
+            collection(db, 'patients'),
+            where('registeredAt', '>=', Timestamp.fromDate(cutoffDate))
+          );
+          const snap = await getDocs(q);
+          snap.forEach((doc) => {
+            const data = doc.data();
+            recentPatients.push({
+              age: data.age,
+              gender: data.gender,
+              department: data.department,
+              symptoms: data.symptoms
+            });
+          });
+        } catch (e) {
+          console.error("Failed to query patients in briefing API:", e);
+        }
+
+        result = await GeminiService.generateBriefing(
+          apiKey, 
+          medicines || [], 
+          doctors || [], 
+          footfall || {},
+          recentPatients.length > 0 ? recentPatients : undefined
+        );
         break;
 
       case 'reorder':
