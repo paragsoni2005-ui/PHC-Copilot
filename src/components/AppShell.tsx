@@ -1,8 +1,9 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 import {
   LayoutDashboard,
   Pill,
@@ -10,7 +11,9 @@ import {
   Users,
   Settings,
   Sparkles,
-  User
+  User,
+  LogOut,
+  ClipboardList
 } from "lucide-react";
 
 interface AppShellProps {
@@ -19,15 +22,24 @@ interface AppShellProps {
 
 export default function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user, role, loading, signOut, hasAccess } = useAuth();
 
-  const navItems = [
-    { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { name: "Briefing", href: "/briefing", icon: Sparkles },
-    { name: "Medicines", href: "/medicines", icon: Pill },
-    { name: "Footfall", href: "/footfall", icon: TrendingUp },
-    { name: "Attendance", href: "/attendance", icon: Users },
-    { name: "Settings", href: "/settings", icon: Settings },
-  ];
+  // Route protection gate
+  useEffect(() => {
+    if (!loading) {
+      if (!user) {
+        router.push("/");
+      } else if (!hasAccess(pathname)) {
+        // Redirect to their default page if accessing an unauthorized route
+        if (role === "receptionist") {
+          router.push("/opd-registration");
+        } else if (role === "medical_officer") {
+          router.push("/dashboard");
+        }
+      }
+    }
+  }, [user, role, loading, pathname, router, hasAccess]);
 
   // Helper to format today's date
   const getFormattedDate = () => {
@@ -39,6 +51,59 @@ export default function AppShell({ children }: AppShellProps) {
     };
     return new Date().toLocaleDateString("en-US", options);
   };
+
+  // Central loader while checking session
+  if (loading) {
+    return (
+      <div className="redirect-loading flex-center">
+        <div className="spinner"></div>
+        <style jsx>{`
+          .redirect-loading {
+            min-height: 100vh;
+            width: 100vw;
+            background-color: var(--color-background);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+          .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--color-border-subtle);
+            border-top-color: var(--color-clinical-teal);
+            border-radius: 9999px;
+            animation: spin 0.8s linear infinite;
+          }
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
+  // If unauthenticated or unauthorized, render blank while redirect triggers
+  if (!user || !hasAccess(pathname)) {
+    return null;
+  }
+
+  // Construct role-specific navigation links
+  const navItems = role === "receptionist" 
+    ? [
+        { name: "OPD Intake", href: "/opd-registration", icon: ClipboardList }
+      ]
+    : [
+        { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+        { name: "Briefing", href: "/briefing", icon: Sparkles },
+        { name: "Medicines", href: "/medicines", icon: Pill },
+        { name: "Footfall", href: "/footfall", icon: TrendingUp },
+        { name: "Attendance", href: "/attendance", icon: Users },
+        { name: "Settings", href: "/settings", icon: Settings },
+      ];
+
+  const profileName = role === "receptionist" ? "Staff" : "Dr. Sarah";
+  const profileRole = role === "receptionist" ? "OPD Receptionist" : "Medical Officer";
+  const greetingHeader = role === "receptionist" ? "OPD Registration Desk" : "Good Morning, Doctor";
 
   return (
     <div className="app-shell-layout">
@@ -79,16 +144,22 @@ export default function AppShell({ children }: AppShellProps) {
               </Link>
             );
           })}
+          
+          {/* Sign Out Trigger */}
+          <button onClick={signOut} className="nav-item btn-signout">
+            <LogOut size={20} className="nav-icon" />
+            <span>Sign Out</span>
+          </button>
         </nav>
 
-        {/* Doctor profile card */}
+        {/* User Profile Footer */}
         <div className="sidebar-profile">
           <div className="profile-avatar flex-center">
             <User size={20} className="avatar-icon" />
           </div>
           <div className="profile-info">
-            <p className="profile-name">Dr. Sarah</p>
-            <p className="profile-role">Medical Officer</p>
+            <p className="profile-name">{profileName}</p>
+            <p className="profile-role">{profileRole}</p>
           </div>
         </div>
       </aside>
@@ -98,7 +169,7 @@ export default function AppShell({ children }: AppShellProps) {
         {/* Page greeting header */}
         <header className="app-header">
           <div className="greeting-wrapper">
-            <h2 className="greeting-title">Good Morning, Doctor</h2>
+            <h2 className="greeting-title">{greetingHeader}</h2>
             <p className="greeting-date">{getFormattedDate()}</p>
           </div>
           <div className="header-actions">
@@ -129,6 +200,12 @@ export default function AppShell({ children }: AppShellProps) {
             </Link>
           );
         })}
+        
+        {/* Mobile Sign Out */}
+        <button onClick={signOut} className="mobile-nav-item btn-mobile-signout">
+          <LogOut size={20} />
+          <span className="mobile-label">Sign Out</span>
+        </button>
       </nav>
 
       <style jsx global>{`
@@ -184,6 +261,8 @@ export default function AppShell({ children }: AppShellProps) {
           font-size: 0.875rem;
           font-weight: 500;
           transition: all 0.2s ease;
+          width: 100%;
+          text-align: left;
         }
 
         .nav-item:hover {
@@ -197,22 +276,13 @@ export default function AppShell({ children }: AppShellProps) {
           box-shadow: 0 4px 10px rgba(9, 20, 38, 0.1);
         }
 
-        .nav-item-disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-          position: relative;
+        .btn-signout {
+          color: var(--color-error);
+          margin-top: 16px;
         }
-
-        .badge-coming-soon {
-          position: absolute;
-          right: var(--spacing-space-2);
-          font-size: 0.65rem;
-          background: var(--color-surface-container-highest);
-          color: var(--color-outline);
-          padding: 2px 6px;
-          border-radius: var(--rounded-sm);
-          font-weight: 600;
-          text-transform: uppercase;
+        .btn-signout:hover {
+          background-color: var(--color-error-container);
+          color: var(--color-on-error-container);
         }
 
         .sidebar-profile {
@@ -314,6 +384,12 @@ export default function AppShell({ children }: AppShellProps) {
           display: none;
         }
 
+        .btn-mobile-signout {
+          border: none;
+          background: none;
+          color: var(--color-error);
+        }
+
         /* Responsive breakpoints */
         @media (max-width: 1024px) {
           .app-sidebar {
@@ -356,11 +432,6 @@ export default function AppShell({ children }: AppShellProps) {
 
           .mobile-nav-item-active {
             color: var(--color-secondary);
-          }
-
-          .mobile-nav-item-disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
           }
 
           .mobile-label {
