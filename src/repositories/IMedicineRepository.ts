@@ -6,4 +6,5 @@ export interface IMedicineRepository {
   create(medicine: Omit<Medicine, 'id' | 'daysRemaining' | 'riskLevel'>): Promise<Medicine>;
   update(id: string, updates: Partial<Medicine>): Promise<Medicine>;
   delete(id: string): Promise<boolean>;
+  listen(callback: (data: Medicine[]) => void): () => void;
 }
