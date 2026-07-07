@@ -23,6 +23,8 @@ Provide clear, actionable operational recommendations (such as medicine reorderi
 - [ ] **ATT**: Doctor Attendance Monitor displaying daily status and operational reallocation recommendations.
 - [ ] **BRIEF**: One-click AI Daily Operations Briefing with natural language summaries and reasoning.
 - [ ] **SETT**: Settings panel for profile and API key configuration.
+- [ ] **LND**: Landing Page with role-based CTAs and Framer Motion hero animations.
+- [ ] **OPD**: Digital OPD Registration with real-time Firestore synchronization.
 
 ### Out of Scope
 
@@ -54,4 +56,4 @@ Provide clear, actionable operational recommendations (such as medicine reorderi
 | Stitch Design System | Registered Design System ID `36184f3b7f8347758613edbea3f6f675` for visual tokens. | — Pending |
 
 ---
-*Last updated: 2026-07-05 after initial setup*
+*Last updated: 2026-07-07 after adding Landing Page & Digital OPD Registration Phase*

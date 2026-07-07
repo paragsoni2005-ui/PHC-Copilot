@@ -6,8 +6,9 @@
 - [x] **Phase 2: High-Fidelity Feature Mock UIs** - Implements detailed static screens and mock data for Medicine Inventory, Patient Footfall charts, Doctor Attendance roster, and AI Daily Briefing.
 - [x] **Phase 3: Local Persistence & Interactive Prototype** - Integrates React hooks and `localStorage` to make all widgets interactive (adding medicines, updating stock, toggling attendance, recalculating metrics locally).
 - [x] **Phase 4: Google Gemini API Integration** - Connects the frontend to secure serverless API routes that call Gemini 2.5 Flash to generate real operations briefings and analysis.
-- [ ] **Phase 5: Google Cloud Firestore Database** - Migrates state management from `localStorage` to Google Cloud Firestore database for multi-device sync.
-- [ ] **Phase 6: Cloud Deployment & Responsive Polish** - Deploys to Firebase Hosting/Cloud Run, finalizes responsive layouts, and applies premium Material 3 micro-animations.
+- [x] **Phase 5: Google Cloud Firestore Database** - Migrates state management from `localStorage` to Google Cloud Firestore database for multi-device sync.
+- [ ] **Phase 6: Landing Page & Digital OPD Registration** - Introduces the landing page with role-based access, and replaces paper OPD registers with a digital Firestore-backed registration form, real-time sync table, search, and filters.
+- [ ] **Phase 7: Cloud Deployment & Responsive Polish** - Deploys to Firebase Hosting/Cloud Run, finalizes responsive layouts, and applies premium Material 3 micro-animations.
 
 ---
 
@@ -71,9 +72,22 @@
 **Plans**: TBD
 **UI hint**: yes
 
-### Phase 6: Cloud Deployment & Responsive Polish
-**Goal**: Deploy the web app to Firebase Hosting and backend API routes to Cloud Run/Vercel, complete a responsive layout audit, and add micro-animations and transition styles.
+### Phase 6: Landing Page & Digital OPD Registration
+**Goal**: Build a premium role-based landing page and a digital OPD registration workflow that writes to Firestore and syncs dynamically with the Medical Officer's dashboard.
 **Depends on**: Phase 5
+**Requirements**: LND-01, LND-02, LND-03, LND-04, LND-05, LND-06, OPD-01, OPD-02, OPD-03, OPD-04, OPD-05, OPD-06
+**Success Criteria**:
+  1. User is greeted by a premium landing page showing PHC Copilot's features, workflow, technology, and projected benefits.
+  2. Landing page supports role CTAs: "Register Patients" for Receptionists (routing to `/opd-registration`) and "Medical Officer Dashboard" for Medical Officers (routing to `/dashboard`).
+  3. Digital OPD Registration form validates required fields (Age, Gender, Department, Symptoms, Visit Type) and saves entries immediately to a new `patients` collection in Firestore.
+  4. Registered patients appear instantly in a real-time synchronized "Today's Registrations" table, complete with search, filter options, and edit/view actions.
+  5. New patient registrations automatically increment the dashboard's active patient/footfall count in real time without refreshing.
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 7: Cloud Deployment & Responsive Polish
+**Goal**: Deploy the web app to Firebase Hosting and backend API routes to Cloud Run/Vercel, complete a responsive layout audit, and add micro-animations and transition styles.
+**Depends on**: Phase 6
 **Requirements**: None (deployment and polish)
 **Success Criteria**:
   1. App is fully hosted and accessible via a public HTTPS URL.
@@ -93,7 +107,8 @@
 | Phase 3: Local Persistence & Interactive Prototype | 2/2 | Executed | 2026-07-06 |
 | Phase 4: Google Gemini API Integration | 2/2 | Executed | 2026-07-07 |
 | Phase 5: Google Cloud Firestore Database | 2/2 | Executed | 2026-07-07 |
-| Phase 6: Cloud Deployment & Responsive Polish | 0/0 | Not started | - |
+| Phase 6: Landing Page & Digital OPD Registration | 0/0 | Not started | - |
+| Phase 7: Cloud Deployment & Responsive Polish | 0/0 | Not started | - |
 
 ---
-*Last updated: 2026-07-06 Phase 3 completed*
+*Last updated: 2026-07-07 Phase 5 completed*

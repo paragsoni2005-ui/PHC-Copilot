@@ -55,6 +55,24 @@ Requirements for the initial release. Each maps to roadmap phases.
 - [ ] **SETT-01**: Profile section with user details and roles (Doctor, Admin, Pharmacist).
 - [ ] **SETT-02**: Configuration to toggle between mock AI mode and live Google AI Studio API (entering Gemini API key).
 
+### Landing Page & Access Shell (LND)
+
+- [ ] **LND-01**: Hero section features product name "PHC Copilot", tagline, and subtitle explaining the Next.js/Firestore/Gemini architecture.
+- [ ] **LND-02**: Role-based entry CTAs: "Register Patients" (routes to `/opd-registration` for Receptionists) and "Medical Officer Dashboard" (routes to `/dashboard` for Medical Officers).
+- [ ] **LND-03**: Premium hero section animation using Framer Motion (clinic, doctors, patients, AI glow, and dashboard preview).
+- [ ] **LND-04**: Feature highlights section displaying glassmorphic cards (OPD registration, inventory, attendance, footfall analytics, AI briefing, alerts).
+- [ ] **LND-05**: Interactive workflow roadmap diagram (Patient Arrives -> Receptionist Registers -> Dashboard Updates -> Gemini Insights).
+- [ ] **LND-06**: Technology stack section with logos and impact benefits summary cards.
+
+### Digital OPD Registration (OPD)
+
+- [ ] **OPD-01**: Registration form with inputs for Name (optional), Age (required), Gender (required), Visit Type (required: New/Follow-up), Department (required), Symptoms (required), Village (required), and Phone (optional).
+- [ ] **OPD-02**: Friendly validation errors on form submission for missing required fields.
+- [ ] **OPD-03**: Registration assigns a unique registration ID and timestamp, then saves the document directly to Firestore in a new `patients` collection.
+- [ ] **OPD-04**: Today's Registrations table displaying registered patients with fields: ID, Time, Age, Gender, Department, Symptoms, Visit Type, Status, and Actions (View, Edit, Delete).
+- [ ] **OPD-05**: Search bar to query table by Registration ID, Name, or Symptoms, plus filters for Today, Yesterday, Department, Visit Type, and Gender.
+- [ ] **OPD-06**: Real-time sync using `onSnapshot` listeners to automatically increment dashboard counters and update footfall graphs upon patient registration.
+
 ---
 
 ## v2 Requirements
@@ -107,11 +125,23 @@ Deferred to future releases.
 | BRIEF-04 | Phase 2 | Pending |
 | SETT-01 | Phase 1 | Pending |
 | SETT-02 | Phase 3 | Pending |
+| LND-01 | Phase 6 | Pending |
+| LND-02 | Phase 6 | Pending |
+| LND-03 | Phase 6 | Pending |
+| LND-04 | Phase 6 | Pending |
+| LND-05 | Phase 6 | Pending |
+| LND-06 | Phase 6 | Pending |
+| OPD-01 | Phase 6 | Pending |
+| OPD-02 | Phase 6 | Pending |
+| OPD-03 | Phase 6 | Pending |
+| OPD-04 | Phase 6 | Pending |
+| OPD-05 | Phase 6 | Pending |
+| OPD-06 | Phase 6 | Pending |
 
 **Coverage:**
-- v1 requirements: 24 total
-- Mapped to phases: 24
+- v1 requirements: 36 total
+- Mapped to phases: 36
 - Unmapped: 0 ✓
 
 ---
-*Last updated: 2026-07-05 after initial requirements definition*
+*Last updated: 2026-07-07 after adding Landing Page & Digital OPD Registration Phase*
