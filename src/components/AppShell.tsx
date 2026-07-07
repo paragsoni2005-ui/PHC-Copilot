@@ -25,21 +25,10 @@ export default function AppShell({ children }: AppShellProps) {
   const router = useRouter();
   const { user, role, loading, signOut, hasAccess } = useAuth();
 
-  // Route protection gate
+  // Route protection gate - bypassed since auth is disabled
   useEffect(() => {
-    if (!loading) {
-      if (!user) {
-        router.push("/");
-      } else if (!hasAccess(pathname)) {
-        // Redirect to their default page if accessing an unauthorized route
-        if (role === "receptionist") {
-          router.push("/opd-registration");
-        } else if (role === "medical_officer") {
-          router.push("/dashboard");
-        }
-      }
-    }
-  }, [user, role, loading, pathname, router, hasAccess]);
+    // No-op redirect gate
+  }, [pathname]);
 
   // Helper to format today's date
   const getFormattedDate = () => {
@@ -52,58 +41,20 @@ export default function AppShell({ children }: AppShellProps) {
     return new Date().toLocaleDateString("en-US", options);
   };
 
-  // Central loader while checking session
-  if (loading) {
-    return (
-      <div className="redirect-loading flex-center">
-        <div className="spinner"></div>
-        <style jsx>{`
-          .redirect-loading {
-            min-height: 100vh;
-            width: 100vw;
-            background-color: var(--color-background);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-          }
-          .spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid var(--color-border-subtle);
-            border-top-color: var(--color-clinical-teal);
-            border-radius: 9999px;
-            animation: spin 0.8s linear infinite;
-          }
-          @keyframes spin {
-            to { transform: rotate(360deg); }
-          }
-        `}</style>
-      </div>
-    );
-  }
+  // Construct unified navigation links for all features
+  const navItems = [
+    { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    { name: "OPD Intake", href: "/opd-registration", icon: ClipboardList },
+    { name: "Briefing", href: "/briefing", icon: Sparkles },
+    { name: "Medicines", href: "/medicines", icon: Pill },
+    { name: "Footfall", href: "/footfall", icon: TrendingUp },
+    { name: "Attendance", href: "/attendance", icon: Users },
+    { name: "Settings", href: "/settings", icon: Settings },
+  ];
 
-  // If unauthenticated or unauthorized, render blank while redirect triggers
-  if (!user || !hasAccess(pathname)) {
-    return null;
-  }
-
-  // Construct role-specific navigation links
-  const navItems = role === "receptionist" 
-    ? [
-        { name: "OPD Intake", href: "/opd-registration", icon: ClipboardList }
-      ]
-    : [
-        { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-        { name: "Briefing", href: "/briefing", icon: Sparkles },
-        { name: "Medicines", href: "/medicines", icon: Pill },
-        { name: "Footfall", href: "/footfall", icon: TrendingUp },
-        { name: "Attendance", href: "/attendance", icon: Users },
-        { name: "Settings", href: "/settings", icon: Settings },
-      ];
-
-  const profileName = role === "receptionist" ? "Staff" : "Dr. Sarah";
-  const profileRole = role === "receptionist" ? "OPD Receptionist" : "Medical Officer";
-  const greetingHeader = role === "receptionist" ? "OPD Registration Desk" : "Good Morning, Doctor";
+  const profileName = "Staff";
+  const profileRole = "Clinic Operations";
+  const greetingHeader = pathname === "/opd-registration" ? "OPD Registration Desk" : "Good Morning, Doctor";
 
   return (
     <div className="app-shell-layout">

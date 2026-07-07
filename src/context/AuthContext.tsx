@@ -27,76 +27,22 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [role, setRole] = useState<UserRole>(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any>({ uid: "demo-user", email: "mo@phc.gov.in", isAnonymous: false });
+  const [role, setRole] = useState<UserRole>("medical_officer");
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
 
-  // Route permission config
+  // Route permission config - bypassed as auth is disabled
   const hasAccess = useCallback((path: string): boolean => {
-    if (!role) return path === "/"; // Guests can only access landing page
-    if (role === "receptionist") {
-      return path === "/opd-registration"; // Receptionist can only access OPD intake
-    }
-    if (role === "medical_officer") {
-      // MO can access all internal routes except registration
-      return path !== "/opd-registration";
-    }
-    return false;
-  }, [role]);
+    return true;
+  }, []);
 
-  // Sync auth state
+  // Sync auth state - bypassed to keep authentication disabled
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      setLoading(true);
-      if (firebaseUser) {
-        setUser(firebaseUser);
-        
-        // Fetch role from Firestore user profile
-        try {
-          const userDocRef = doc(db, "users", firebaseUser.uid);
-          const userDoc = await getDoc(userDocRef);
-
-          if (userDoc.exists()) {
-            setRole(userDoc.data().role as UserRole);
-          } else {
-            // Auto-provision role if profile doc doesn't exist
-            let assignedRole: UserRole = "receptionist";
-            let displayName = "Staff";
-
-            if (firebaseUser.isAnonymous) {
-              assignedRole = "receptionist";
-              displayName = "OPD Receptionist";
-            } else if (firebaseUser.email) {
-              assignedRole = "medical_officer";
-              displayName = firebaseUser.email.split("@")[0].toUpperCase() === "MO" 
-                ? "Dr. Sarah" 
-                : "Medical Officer";
-            }
-
-            await setDoc(userDocRef, {
-              uid: firebaseUser.uid,
-              email: firebaseUser.email || "anonymous",
-              displayName,
-              role: assignedRole,
-              createdAt: new Date().toISOString()
-            });
-            setRole(assignedRole);
-          }
-        } catch (error) {
-          console.error("Error fetching user profile role:", error);
-          // Local fallback in case of Firestore rules/connection issues
-          setRole(firebaseUser.isAnonymous ? "receptionist" : "medical_officer");
-        }
-      } else {
-        setUser(null);
-        setRole(null);
-      }
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
+    setUser({ uid: "demo-user", email: "mo@phc.gov.in", isAnonymous: false } as any);
+    setRole("medical_officer");
+    setLoading(false);
   }, []);
 
   const signInAsReceptionist = async () => {

@@ -58,9 +58,8 @@ export function useFootfall() {
     const deptCounts: { [key: string]: number } = {
       "General OPD": 0,
       "Pediatrics": 0,
-      "Gynecology": 0,
-      "Dental": 0,
-      "Ophthalmology": 0
+      "ANC": 0,
+      "Immunization": 0
     };
 
     // Initialize daily counts for last 7 days to make sure we show them even if 0
@@ -117,9 +116,8 @@ export function useFootfall() {
     const deptColors: { [key: string]: string } = {
       "General OPD": "var(--color-primary)",
       "Pediatrics": "var(--color-clinical-teal)",
-      "Gynecology": "#ec4899",
-      "Dental": "var(--color-status-warning)",
-      "Ophthalmology": "#8b5cf6"
+      "ANC": "#ec4899",
+      "Immunization": "#8b5cf6"
     };
 
     const dept: DepartmentPatients[] = Object.keys(deptCounts).map((name) => ({

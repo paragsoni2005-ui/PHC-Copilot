@@ -44,11 +44,23 @@ export default function OPDRegistrationPage() {
   const [phone, setPhone] = useState("");
   const [department, setDepartment] = useState("General OPD");
   const [visitType, setVisitType] = useState("new");
-  const [symptoms, setSymptoms] = useState("");
+
+  // Symptom Chips
+  const symptomOptions = ["Fever", "Cough", "Cold", "Headache", "Body Pain", "Stomach Pain", "Injury", "Other"];
+  const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
+  const [otherSymptoms, setOtherSymptoms] = useState("");
 
   const [formError, setFormError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+
+  const toggleSymptom = (symptom: string) => {
+    if (selectedSymptoms.includes(symptom)) {
+      setSelectedSymptoms(selectedSymptoms.filter((s) => s !== symptom));
+    } else {
+      setSelectedSymptoms([...selectedSymptoms, symptom]);
+    }
+  };
 
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,8 +76,19 @@ export default function OPDRegistrationPage() {
       setFormError("Please enter the patient's village.");
       return;
     }
-    if (!symptoms.trim()) {
-      setFormError("Please enter patient symptoms.");
+
+    // Build symptoms string from chips
+    const activeSymptoms = [...selectedSymptoms];
+    if (activeSymptoms.includes("Other")) {
+      const idx = activeSymptoms.indexOf("Other");
+      if (otherSymptoms.trim()) {
+        activeSymptoms[idx] = `Other: ${otherSymptoms.trim()}`;
+      }
+    }
+
+    const symptomsString = activeSymptoms.join(", ");
+    if (symptomsString.trim() === "") {
+      setFormError("Please select at least one symptom chip.");
       return;
     }
 
@@ -78,7 +101,7 @@ export default function OPDRegistrationPage() {
         phone: phone.trim() || undefined,
         department,
         visitType: visitType as "new" | "follow-up",
-        symptoms: symptoms.trim()
+        symptoms: symptomsString
       });
 
       setSuccessMessage("Patient registered successfully!");
@@ -91,7 +114,8 @@ export default function OPDRegistrationPage() {
       setPhone("");
       setDepartment("General OPD");
       setVisitType("new");
-      setSymptoms("");
+      setSelectedSymptoms([]);
+      setOtherSymptoms("");
 
       setTimeout(() => setSuccessMessage(null), 4000);
     } catch (err: any) {
@@ -124,7 +148,7 @@ export default function OPDRegistrationPage() {
             <div className="form-card glass-container glow-teal">
               <div className="card-header-bar flex-center gap-2">
                 <ClipboardList size={20} className="text-teal" />
-                <h3>New Intake Registration</h3>
+                <h3>Quick Registration Form</h3>
               </div>
 
               {formError && (
@@ -209,21 +233,39 @@ export default function OPDRegistrationPage() {
                   <select value={department} onChange={(e) => setDepartment(e.target.value)}>
                     <option value="General OPD">General OPD</option>
                     <option value="Pediatrics">Pediatrics</option>
-                    <option value="Gynecology">Gynecology</option>
-                    <option value="Dental">Dental</option>
-                    <option value="Ophthalmology">Ophthalmology</option>
+                    <option value="ANC">ANC</option>
+                    <option value="Immunization">Immunization</option>
                   </select>
                 </div>
 
                 <div className="input-group">
                   <label>Symptoms / Presenting Complaints *</label>
-                  <textarea 
-                    placeholder="e.g. High fever for 2 days with headache and body aches" 
-                    value={symptoms} 
-                    onChange={(e) => setSymptoms(e.target.value)} 
-                    rows={3}
-                    required
-                  />
+                  <div className="symptoms-chips-container">
+                    {symptomOptions.map((symptom) => {
+                      const isSelected = selectedSymptoms.includes(symptom);
+                      return (
+                        <button
+                          key={symptom}
+                          type="button"
+                          className={`symptom-chip ${isSelected ? "active" : ""}`}
+                          onClick={() => toggleSymptom(symptom)}
+                        >
+                          {symptom}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  
+                  {selectedSymptoms.includes("Other") && (
+                    <input
+                      type="text"
+                      className="other-symptoms-input animate-fade-in"
+                      placeholder="Specify other symptoms..."
+                      value={otherSymptoms}
+                      onChange={(e) => setOtherSymptoms(e.target.value)}
+                      required
+                    />
+                  )}
                 </div>
 
                 <button type="submit" className="btn-primary-form flex-center gap-2">
@@ -255,9 +297,8 @@ export default function OPDRegistrationPage() {
                     <option value="all">All Departments</option>
                     <option value="General OPD">General OPD</option>
                     <option value="Pediatrics">Pediatrics</option>
-                    <option value="Gynecology">Gynecology</option>
-                    <option value="Dental">Dental</option>
-                    <option value="Ophthalmology">Ophthalmology</option>
+                    <option value="ANC">ANC</option>
+                    <option value="Immunization">Immunization</option>
                   </select>
                 </div>
 
@@ -503,6 +544,47 @@ export default function OPDRegistrationPage() {
           border-color: var(--color-clinical-teal);
         }
 
+        .symptoms-chips-container {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          margin-bottom: 4px;
+        }
+
+        .symptom-chip {
+          padding: 6px 14px;
+          border-radius: var(--rounded-full);
+          border: 1px solid var(--color-outline-variant);
+          background-color: var(--color-surface-container-lowest);
+          color: var(--color-on-surface-variant);
+          font-size: 0.85rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .symptom-chip:hover {
+          border-color: var(--color-clinical-teal);
+          color: var(--color-clinical-teal);
+          background-color: rgba(13, 148, 136, 0.05);
+        }
+
+        .symptom-chip.active {
+          border-color: var(--color-clinical-teal);
+          background-color: var(--color-clinical-teal);
+          color: white;
+          box-shadow: 0 2px 6px rgba(13, 148, 136, 0.25);
+        }
+
+        .other-symptoms-input {
+          margin-top: 8px;
+          border: 1px solid var(--color-outline-variant);
+          border-radius: var(--rounded-default);
+          padding: 8px 12px;
+          font-size: 0.875rem;
+          width: 100%;
+        }
+
         .btn-primary-form {
           background-color: var(--color-clinical-teal);
           color: white;
@@ -512,6 +594,8 @@ export default function OPDRegistrationPage() {
           font-size: 0.9rem;
           box-shadow: 0 4px 10px rgba(13, 148, 136, 0.2);
           margin-top: 8px;
+          border: none;
+          cursor: pointer;
         }
 
         .btn-primary-form:hover {
@@ -723,6 +807,9 @@ export default function OPDRegistrationPage() {
           width: 28px;
           height: 28px;
           border-radius: var(--rounded-full);
+          border: none;
+          background: none;
+          cursor: pointer;
         }
         .btn-close-modal:hover {
           background: var(--color-surface-container);
@@ -796,6 +883,17 @@ export default function OPDRegistrationPage() {
           border-radius: var(--rounded-sm);
           display: inline-block;
           margin-top: 4px;
+        }
+
+        .btn-modal-cancel {
+          background: var(--color-surface-container-high);
+          color: var(--color-on-surface-variant);
+          padding: 8px 16px;
+          border-radius: var(--rounded-default);
+          font-weight: 600;
+          font-size: 0.85rem;
+          border: none;
+          cursor: pointer;
         }
 
         /* Responsive OP Layout */

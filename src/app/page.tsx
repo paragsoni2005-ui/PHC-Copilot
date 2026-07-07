@@ -38,52 +38,12 @@ export default function RootPage() {
     setShowSplash(false);
   };
 
-  // Redirect if already authenticated
-  useEffect(() => {
-    if (!showSplash && role) {
-      if (role === "receptionist") {
-        router.push("/opd-registration");
-      } else if (role === "medical_officer") {
-        router.push("/dashboard");
-      }
-    }
-  }, [role, showSplash, router]);
-
+  // Authentication checks bypassed as request to disable auth
   const handleRoleSelect = (roleType: "receptionist" | "medical_officer") => {
-    setSelectedRole(roleType);
-    setAuthError(null);
     if (roleType === "receptionist") {
-      // Direct login trigger for Receptionist
-      handleReceptionistLogin();
-    } else {
-      setShowAuthModal(true);
-    }
-  };
-
-  const handleReceptionistLogin = async () => {
-    setAuthLoading(true);
-    setAuthError(null);
-    try {
-      await signInAsReceptionist();
       router.push("/opd-registration");
-    } catch (err: any) {
-      setAuthError(err.message || "Failed to log in anonymously.");
-    } finally {
-      setAuthLoading(false);
-    }
-  };
-
-  const handleMedicalOfficerLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAuthLoading(true);
-    setAuthError(null);
-    try {
-      await signInAsMedicalOfficer(email, password);
+    } else {
       router.push("/dashboard");
-    } catch (err: any) {
-      setAuthError(err.message || "Invalid credentials. Please try again.");
-    } finally {
-      setAuthLoading(false);
     }
   };
 
@@ -248,12 +208,6 @@ export default function RootPage() {
             <h3>Reporting requires extra effort</h3>
             <p>Generating daily logs and reporting up the chain diverts resources from care.</p>
           </motion.div>
-
-          <motion.div className="problem-card glass-container" variants={itemVariants}>
-            <ShieldAlert className="card-icon text-orange" size={28} />
-            <h3>No real-time visibility</h3>
-            <p>Medical Officers cannot monitor live inventories or staffing levels remotely.</p>
-          </motion.div>
         </motion.div>
       </section>
 
@@ -262,8 +216,8 @@ export default function RootPage() {
         <div className="solution-split">
           <motion.div 
             className="solution-text"
-            initial={{ opacity: 0, x: -40 }}
-            whileInView={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8 }}
           >
@@ -286,26 +240,6 @@ export default function RootPage() {
                   <h4>Zero-refresh live updates</h4>
                   <p>Firestore triggers sync new entries instantly with the Medical Officer's view.</p>
                 </div>
-              </div>
-            </div>
-          </motion.div>
-
-          <motion.div 
-            className="solution-preview"
-            initial={{ opacity: 0, x: 40 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8 }}
-          >
-            <div className="mock-form-card glass-container">
-              <div className="mock-form-header">OPD Patient Registration</div>
-              <div className="mock-form-fields">
-                <div className="mock-field-row">
-                  <div className="mock-field-input" style={{ width: "60%" }}>Name</div>
-                  <div className="mock-field-input" style={{ width: "35%" }}>Age</div>
-                </div>
-                <div className="mock-field-input">Symptoms</div>
-                <div className="mock-btn-submit flex-center">Register Patient</div>
               </div>
             </div>
           </motion.div>
@@ -487,71 +421,6 @@ export default function RootPage() {
       <footer className="landing-footer">
         <p>© 2026 PHC Copilot – AI Operating System for Rural Healthcare. Built with Google Cloud & Gemini.</p>
       </footer>
-
-      {/* Authentication Modal */}
-      <AnimatePresence>
-        {showAuthModal && (
-          <div className="modal-backdrop flex-center" onClick={() => setShowAuthModal(false)}>
-            <motion.div 
-              className="modal-card glass-container"
-              onClick={(e) => e.stopPropagation()}
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-            >
-              <div className="modal-header">
-                <Lock size={18} className="text-teal" />
-                <h3>Medical Officer Sign In</h3>
-              </div>
-              <form onSubmit={handleMedicalOfficerLogin} className="modal-form">
-                <div className="form-group">
-                  <label>Email Address</label>
-                  <input 
-                    type="email" 
-                    value={email} 
-                    onChange={(e) => setEmail(e.target.value)} 
-                    required 
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Password</label>
-                  <input 
-                    type="password" 
-                    value={password} 
-                    onChange={(e) => setPassword(e.target.value)} 
-                    required 
-                  />
-                </div>
-                
-                {authError && <p className="auth-error-msg">{authError}</p>}
-
-                <div className="credentials-tip">
-                  <p><strong>Demo Credentials:</strong></p>
-                  <p>Email: <code>mo@phc.gov.in</code></p>
-                  <p>Password: <code>password123</code></p>
-                </div>
-
-                <div className="form-actions flex-end gap-2">
-                  <button 
-                    type="button" 
-                    className="btn-modal-cancel" 
-                    onClick={() => setShowAuthModal(false)}
-                  >
-                    Cancel
-                  </button>
-                  <button 
-                    type="submit" 
-                    className="btn-modal-submit"
-                    disabled={authLoading}
-                  >
-                    {authLoading ? "Signing In..." : "Sign In"}
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
 
       {/* Styled JSX */}
       <style jsx global>{`
@@ -878,7 +747,7 @@ export default function RootPage() {
 
         .problem-cards-grid {
           display: grid;
-          grid-template-columns: repeat(4, 1fr);
+          grid-template-columns: repeat(3, 1fr);
           gap: 24px;
         }
 
@@ -916,13 +785,13 @@ export default function RootPage() {
         }
 
         .solution-split {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 60px;
-          max-width: 1200px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
+          max-width: 800px;
           width: 100%;
           margin: 0 auto;
-          align-items: center;
         }
 
         .solution-desc {
@@ -937,6 +806,9 @@ export default function RootPage() {
           display: flex;
           flex-direction: column;
           gap: 24px;
+          text-align: left;
+          max-width: 500px;
+          margin: 0 auto;
         }
 
         .bullet-item {

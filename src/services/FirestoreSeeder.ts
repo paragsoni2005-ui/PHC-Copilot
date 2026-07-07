@@ -42,33 +42,27 @@ function generateHistoricalPatients(): any[] {
   
   const symptomsByDept = {
     "General OPD": [
-      "High fever with chills and headache",
-      "Severe abdominal pain and acid reflux",
-      "Back ache, leg stiffness and muscle pain",
-      "Chronic cough with sputum and congestion",
-      "Dizziness, hypertension and mild chest pressure"
+      "Fever, Headache",
+      "Stomach Pain, Body Pain",
+      "Injury, Body Pain",
+      "Cough, Cold",
+      "Fever, Cough, Cold"
     ],
     "Pediatrics": [
-      "Runny nose, sneezing and hacking cough",
-      "High fever with nausea and vomiting",
-      "Watery stool, stomach cramps and dehydration",
-      "Skin rashes on arms and back with itching"
+      "Fever, Cough, Cold",
+      "Fever, Stomach Pain",
+      "Cough, Cold",
+      "Injury"
     ],
-    "Gynecology": [
-      "Routine second-trimester prenatal checkup",
-      "Severe lower abdominal cramping",
-      "Irregular menstrual cycles with heavy pain",
-      "Post-pregnancy checkup and counseling"
+    "ANC": [
+      "Routine second-trimester checkup, Headache",
+      "Body Pain, Other: Pregnancy fatigue",
+      "Other: Antenatal checkup, Stomach Pain"
     ],
-    "Dental": [
-      "Severe molar toothache and gum swelling",
-      "Bleeding gums, sensitivity to cold/hot",
-      "Wisdom tooth eruption pain and stiffness"
-    ],
-    "Ophthalmology": [
-      "Blurry vision and double vision in left eye",
-      "Severe eye redness, watering and itching",
-      "Foreign object sensation with burning"
+    "Immunization": [
+      "Other: Routine vaccination",
+      "Fever, Other: Post-vaccine fever",
+      "Other: Measles vaccination follow-up"
     ]
   };
 
@@ -89,7 +83,7 @@ function generateHistoricalPatients(): any[] {
       
       // Determine gender based on department
       let gender = Math.random() > 0.5 ? "Male" : "Female";
-      if (dept === "Gynecology") {
+      if (dept === "ANC") {
         gender = "Female";
       }
 
@@ -100,7 +94,7 @@ function generateHistoricalPatients(): any[] {
 
       // Pick age based on department
       let age = 15 + Math.floor(Math.random() * 60);
-      if (dept === "Pediatrics") {
+      if (dept === "Pediatrics" || dept === "Immunization") {
         age = 1 + Math.floor(Math.random() * 12);
       }
 

@@ -82,12 +82,24 @@
   3. Digital OPD Registration form validates required fields (Age, Gender, Department, Symptoms, Visit Type) and saves entries immediately to a new `patients` collection in Firestore.
   4. Registered patients appear instantly in a real-time synchronized "Today's Registrations" table, complete with search, filter options, and edit/view actions.
   5. New patient registrations automatically increment the dashboard's active patient/footfall count in real time without refreshing.
-**Plans**: TBD
+**Plans**: [.planning/phases/06-landing-page-digital-opd-registration/01-PLAN.md](file:///c:/Users/ASUS/phc%20copilot/.planning/phases/06-landing-page-digital-opd-registration/01-PLAN.md), [.planning/phases/06-landing-page-digital-opd-registration/02-PLAN.md](file:///c:/Users/ASUS/phc%20copilot/.planning/phases/06-landing-page-digital-opd-registration/02-PLAN.md)
+**UI hint**: yes
+
+### Phase 6.1: OPD Registration Form Polish & Auth Disable
+**Goal**: Disable authentication gates to enable free route access, remove landing page mock previews, and polish the OPD patient registration form to support interactive symptom chips and streamlined inputs.
+**Depends on**: Phase 6
+**Requirements**: None (usability and polish)
+**Success Criteria**:
+  1. Internal pages (dashboard, OPD registration, medicines) are accessible without redirects or auth modal blocks.
+  2. Sidebar navigation shows unified links for both Medical Officer and OPD Intake features.
+  3. Landing page removes mock form preview and "No real-time visibility" card.
+  4. OPD Registration form is titled "Quick Registration Form", offers updated departments, and implements multi-select symptom chips (with a custom "Other" write-in).
+**Plans**: [.planning/phases/06.1-registration-form-polish-auth-disable/01-PLAN.md](file:///c:/Users/ASUS/phc%20copilot/.planning/phases/06.1-registration-form-polish-auth-disable/01-PLAN.md)
 **UI hint**: yes
 
 ### Phase 7: Cloud Deployment & Responsive Polish
 **Goal**: Deploy the web app to Firebase Hosting and backend API routes to Cloud Run/Vercel, complete a responsive layout audit, and add micro-animations and transition styles.
-**Depends on**: Phase 6
+**Depends on**: Phase 6.1
 **Requirements**: None (deployment and polish)
 **Success Criteria**:
   1. App is fully hosted and accessible via a public HTTPS URL.
@@ -108,7 +120,8 @@
 | Phase 4: Google Gemini API Integration | 2/2 | Executed | 2026-07-07 |
 | Phase 5: Google Cloud Firestore Database | 2/2 | Executed | 2026-07-07 |
 | Phase 6: Landing Page & Digital OPD Registration | 2/2 | Executed | 2026-07-07 |
+| Phase 6.1: OPD Registration Form Polish & Auth Disable | 1/1 | Executed | 2026-07-07 |
 | Phase 7: Cloud Deployment & Responsive Polish | 0/0 | Not started | - |
 
 ---
-*Last updated: 2026-07-07 Phase 6 completed*
+*Last updated: 2026-07-07 Phase 6.1 completed*
