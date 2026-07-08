@@ -878,6 +878,7 @@ export default function OPDRegistrationPage() {
           padding: var(--spacing-space-6);
           box-shadow: 0 20px 40px rgba(9, 20, 38, 0.15);
           z-index: 1001;
+          background: #ffffff;
         }
 
         .btn-close-modal {
