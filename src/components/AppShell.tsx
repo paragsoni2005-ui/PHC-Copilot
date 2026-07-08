@@ -23,11 +23,21 @@ export default function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, role, loading, signOut, hasAccess } = useAuth();
+  const [isOnline, setIsOnline] = React.useState(true);
 
-  // Route protection gate - bypassed since auth is disabled
   useEffect(() => {
-    // No-op redirect gate
-  }, [pathname]);
+    if (typeof window !== "undefined") {
+      setIsOnline(navigator.onLine);
+      const handleOnline = () => setIsOnline(true);
+      const handleOffline = () => setIsOnline(false);
+      window.addEventListener("online", handleOnline);
+      window.addEventListener("offline", handleOffline);
+      return () => {
+        window.removeEventListener("online", handleOnline);
+        window.removeEventListener("offline", handleOffline);
+      };
+    }
+  }, []);
 
   // Helper to format today's date
   const getFormattedDate = () => {
@@ -47,6 +57,14 @@ export default function AppShell({ children }: AppShellProps) {
     { name: "Medicines", href: "/medicines", icon: Pill },
     { name: "Footfall", href: "/footfall", icon: TrendingUp },
     { name: "Attendance", href: "/attendance", icon: Users },
+    { name: "Settings", href: "/settings", icon: Settings },
+  ];
+
+  const mobileNavItems = [
+    { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    { name: "Briefing", href: "/briefing", icon: Sparkles },
+    { name: "Medicines", href: "/medicines", icon: Pill },
+    { name: "Roster", href: "/attendance", icon: Users },
     { name: "Settings", href: "/settings", icon: Settings },
   ];
 
@@ -129,13 +147,21 @@ export default function AppShell({ children }: AppShellProps) {
           </div>
         </header>
 
+        {/* Offline detection banner */}
+        {!isOnline && (
+          <div className="offline-banner">
+            <span className="offline-pulse-dot"></span>
+            <span className="offline-banner-text">Offline Mode — Using Local Rule Engine</span>
+          </div>
+        )}
+
         {/* Content body container */}
         <main className="app-content-body">{children}</main>
       </div>
 
       {/* Navigation Rail - Mobile (only visible on small viewports) */}
       <nav className="app-mobile-nav">
-        {navItems.map((item) => {
+        {mobileNavItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
           return (
@@ -392,6 +418,34 @@ export default function AppShell({ children }: AppShellProps) {
           .mobile-label {
             font-size: 0.65rem;
           }
+        }
+
+        .offline-banner {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          background-color: var(--color-status-error);
+          color: white;
+          padding: 8px var(--spacing-margin-page);
+          font-size: 0.8rem;
+          font-weight: 600;
+          text-align: center;
+          z-index: 85;
+          box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        }
+
+        .offline-pulse-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: var(--rounded-full);
+          background-color: white;
+          animation: offlinePulse 1s infinite alternate;
+        }
+
+        @keyframes offlinePulse {
+          from { opacity: 0.4; transform: scale(0.9); }
+          to { opacity: 1; transform: scale(1.1); }
         }
       `}</style>
     </div>

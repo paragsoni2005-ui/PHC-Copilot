@@ -2,9 +2,11 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Medicine } from '@/types/store';
 import { FirestoreMedicineRepository } from '../repositories/FirestoreMedicineRepository';
 import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/context/ToastContext';
 
 export function useMedicines() {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -25,14 +27,16 @@ export function useMedicines() {
   const addMedicine = useCallback(async (medicine: Omit<Medicine, 'id' | 'daysRemaining' | 'riskLevel'>) => {
     if (!repo) throw new Error('Repository not initialized');
     const newMed = await repo.create(medicine);
+    showToast(`Medicine ${newMed.name} added successfully!`, "success");
     return newMed;
-  }, [repo]);
+  }, [repo, showToast]);
 
   const updateStock = useCallback(async (id: string, newStock: number) => {
     if (!repo) throw new Error('Repository not initialized');
     const updated = await repo.update(id, { stock: newStock });
+    showToast(`Stock updated for ${updated.name} to ${newStock} units.`, "success");
     return updated;
-  }, [repo]);
+  }, [repo, showToast]);
 
   const filteredMedicines = useMemo(() => {
     return medicines.filter((m) => {

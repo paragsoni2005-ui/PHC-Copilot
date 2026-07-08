@@ -34,9 +34,26 @@ export default function AttendancePage() {
   if (loading) {
     return (
       <AppShell>
-        <div className="attendance-container animate-fade-in flex-center" style={{ minHeight: '400px', flexDirection: 'column' }}>
-          <RefreshCw size={24} className="spin-icon text-clinical-teal" />
-          <p style={{ marginTop: '12px', color: 'var(--color-outline)' }}>Loading doctor roster...</p>
+        <div className="attendance-container animate-fade-in">
+          {/* Header Skeleton */}
+          <div style={{ marginBottom: '24px' }}>
+            <div className="skeleton skeleton-title" style={{ width: '40%', height: '28px' }}></div>
+            <div className="skeleton skeleton-text" style={{ width: '60%', height: '14px' }}></div>
+          </div>
+          
+          {/* Stats Skeleton */}
+          <div className="stats-summary-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '24px' }}>
+            <div className="skeleton skeleton-card" style={{ height: '76px' }}></div>
+            <div className="skeleton skeleton-card" style={{ height: '76px' }}></div>
+            <div className="skeleton skeleton-card" style={{ height: '76px' }}></div>
+          </div>
+
+          {/* Roster Grid Skeleton */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px' }}>
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="skeleton skeleton-card" style={{ height: '180px', borderRadius: '12px' }}></div>
+            ))}
+          </div>
         </div>
       </AppShell>
     );
@@ -136,53 +153,60 @@ export default function AttendancePage() {
         <section className="roster-section">
           <h2 className="section-title">Active Roster List</h2>
           <div className="roster-grid">
-            {doctors.map((doc) => {
-              const statusClass = `status-${doc.status}`;
-              const formattedStatus = doc.status.replace("_", " ").toUpperCase();
+            {doctors.length === 0 ? (
+              <div className="empty-state glass-container flex-center" style={{ gridColumn: '1 / -1', flexDirection: 'column', gap: '12px', padding: '48px 24px', textAlign: 'center' }}>
+                <Users size={36} style={{ color: 'var(--color-outline-variant)' }} />
+                <p className="empty-text" style={{ margin: 0, fontWeight: 600 }}>No doctors found in the active roster.</p>
+              </div>
+            ) : (
+              doctors.map((doc) => {
+                const statusClass = `status-${doc.status}`;
+                const formattedStatus = doc.status.replace("_", " ").toUpperCase();
 
-              return (
-                <div key={doc.id} className="doctor-card glass-container">
-                  <div className="doc-card-header">
-                    <div className="doc-meta">
-                      <h3 className="doc-name">{doc.name}</h3>
-                      <p className="doc-dept">{doc.department} • {doc.specialty}</p>
+                return (
+                  <div key={doc.id} className="doctor-card glass-container">
+                    <div className="doc-card-header">
+                      <div className="doc-meta">
+                        <h3 className="doc-name">{doc.name}</h3>
+                        <p className="doc-dept">{doc.department} • {doc.specialty}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => toggleAttendance(doc.id)}
+                        className={`status-chip ${statusClass}`}
+                        title="Click to toggle Present/Absent"
+                        style={{ border: 'none', cursor: 'pointer', transition: 'all 0.2s' }}
+                      >
+                        {formattedStatus}
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => toggleAttendance(doc.id)}
-                      className={`status-chip ${statusClass}`}
-                      title="Click to toggle Present/Absent"
-                      style={{ border: 'none', cursor: 'pointer', transition: 'all 0.2s' }}
-                    >
-                      {formattedStatus}
-                    </button>
-                  </div>
 
-                  <div className="doc-card-body">
-                    <div className="info-row">
-                      <span className="info-label">Assigned Shift:</span>
-                      <span className="info-value capitalized">{doc.shift}</span>
+                    <div className="doc-card-body">
+                      <div className="info-row">
+                        <span className="info-label">Assigned Shift:</span>
+                        <span className="info-value capitalized">{doc.shift}</span>
+                      </div>
+                      <div className="info-row">
+                        <span className="info-label">Contact:</span>
+                        <span className="info-value flex-center gap-1">
+                          <Phone size={12} className="text-outline" />
+                          <span>{doc.contact}</span>
+                        </span>
+                      </div>
                     </div>
-                    <div className="info-row">
-                      <span className="info-label">Contact:</span>
-                      <span className="info-value flex-center gap-1">
-                        <Phone size={12} className="text-outline" />
-                        <span>{doc.contact}</span>
-                      </span>
-                    </div>
-                  </div>
 
-                  <div className="doc-card-footer">
-                    <button
-                      className="btn-text-action"
-                      onClick={() => alert(`Dialing ${doc.name} at ${doc.contact}...`)}
-                    >
-                      Contact Doctor
-                    </button>
+                    <div className="doc-card-footer">
+                      <button
+                        className="btn-text-action"
+                        onClick={() => alert(`Dialing ${doc.name} at ${doc.contact}...`)}
+                      >
+                        Contact Doctor
+                      </button>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
         </section>
       </div>

@@ -4,9 +4,11 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { Patient } from "@/types/store";
 import { FirestorePatientRepository } from "@/repositories/FirestorePatientRepository";
 import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/context/ToastContext";
 
 export function usePatients() {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -34,16 +36,18 @@ export function usePatients() {
   const registerPatient = useCallback(async (patientData: Omit<Patient, "patientId" | "registeredAt" | "createdBy" | "status">) => {
     setError(null);
     try {
-      await repo.create({
+      const created = await repo.create({
         ...patientData,
         createdBy: "receptionist",
         status: "waiting"
       });
+      showToast(`Patient ${created.name} registered successfully!`, "success");
     } catch (err: any) {
+      showToast("Failed to register patient.", "error");
       setError(err.message || "Failed to register patient");
       throw err;
     }
-  }, [repo]);
+  }, [repo, showToast]);
 
   // Client-side filtering + search logic
   const filteredPatients = useMemo(() => {

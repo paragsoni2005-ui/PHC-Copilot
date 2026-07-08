@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import AppShell from "@/components/AppShell";
 import { useMedicines } from "@/hooks/useMedicines";
 import { Medicine } from "@/types/store";
-import { Search, Filter, AlertTriangle, Sparkles, RefreshCw, X, Plus, Minus } from "lucide-react";
+import { Search, Filter, AlertTriangle, Sparkles, RefreshCw, X, Plus, Minus, Pill } from "lucide-react";
 
 export default function MedicinesPage() {
   const {
@@ -128,10 +128,24 @@ export default function MedicinesPage() {
 
         {/* Medicines Stock Cards Grid */}
         {loading ? (
-          <div className="empty-state glass-container flex-center">
-            <RefreshCw size={24} className="spin-icon text-clinical-teal" />
-            <p className="empty-text" style={{ marginLeft: '12px' }}>Loading medicines stock...</p>
-          </div>
+          <section className="medicines-grid">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="medicine-card glass-container" style={{ minHeight: '210px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '60%' }}>
+                    <div className="skeleton skeleton-title" style={{ width: '80%', margin: 0 }}></div>
+                    <div className="skeleton skeleton-text" style={{ width: '40%', margin: 0 }}></div>
+                  </div>
+                  <div className="skeleton" style={{ width: '60px', height: '20px', borderRadius: '4px' }}></div>
+                </div>
+                <div style={{ margin: '16px 0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div className="skeleton skeleton-text" style={{ width: '90%' }}></div>
+                  <div className="skeleton skeleton-text" style={{ width: '70%' }}></div>
+                </div>
+                <div className="skeleton" style={{ height: '32px', borderRadius: '6px' }}></div>
+              </div>
+            ))}
+          </section>
         ) : medicines.length > 0 ? (
           <section className="medicines-grid">
             {medicines.map((med) => {
@@ -199,8 +213,9 @@ export default function MedicinesPage() {
             })}
           </section>
         ) : (
-          <div className="empty-state glass-container flex-center">
-            <p className="empty-text">No medicines found matching the criteria.</p>
+          <div className="empty-state glass-container flex-center" style={{ flexDirection: 'column', gap: '12px', padding: '48px 24px' }}>
+            <Pill size={36} style={{ color: 'var(--color-outline-variant)' }} />
+            <p className="empty-text" style={{ margin: 0, fontWeight: 600 }}>No medicines found matching the criteria.</p>
           </div>
         )}
 

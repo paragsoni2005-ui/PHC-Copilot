@@ -330,9 +330,10 @@ export default function OPDRegistrationPage() {
 
               <div className="table-responsive">
                 {loading ? (
-                  <div className="table-empty-state flex-center">
-                    <div className="spinner-subtle"></div>
-                    <p>Syncing OPD records...</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '8px' }}>
+                    <div className="skeleton skeleton-table-row"></div>
+                    <div className="skeleton skeleton-table-row"></div>
+                    <div className="skeleton skeleton-table-row"></div>
                   </div>
                 ) : filteredPatients.length > 0 ? (
                   <table className="patients-table">
@@ -381,8 +382,9 @@ export default function OPDRegistrationPage() {
                     </tbody>
                   </table>
                 ) : (
-                  <div className="table-empty-state flex-center">
-                    <p>No patient records registered matching search criteria.</p>
+                  <div className="table-empty-state flex-center" style={{ flexDirection: 'column', gap: '12px', padding: '36px 12px', textAlign: 'center' }}>
+                    <ClipboardList size={32} style={{ color: 'var(--color-outline-variant)' }} />
+                    <p style={{ margin: 0, fontWeight: 600, color: 'var(--color-outline)' }}>No patient records registered today.</p>
                   </div>
                 )}
               </div>

@@ -227,9 +227,46 @@ button {
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: fadeIn 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 .glow-pulsing {
   animation: pulseGlow 3s infinite ease-in-out;
+}
+
+/* Skeletons pulse animation */
+@keyframes skeletonPulse {
+  0%, 100% {
+    background-color: var(--color-surface-container-high);
+    opacity: 0.6;
+  }
+  50% {
+    background-color: var(--color-surface-container-highest);
+    opacity: 1;
+  }
+}
+
+.skeleton {
+  animation: skeletonPulse 1.5s infinite ease-in-out;
+  border-radius: var(--rounded-sm);
+  display: inline-block;
+  width: 100%;
+}
+
+.skeleton-text {
+  height: 14px;
+  margin-bottom: 8px;
+}
+.skeleton-title {
+  height: 20px;
+  margin-bottom: 12px;
+}
+.skeleton-card {
+  height: 120px;
+  border-radius: var(--rounded-default);
+}
+.skeleton-table-row {
+  height: 48px;
+  border-radius: var(--rounded-sm);
+  margin-bottom: 8px;
 }

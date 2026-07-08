@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { FirestoreChecklistRepository } from '../repositories/FirestoreChecklistRepository';
 import { ChecklistItem } from '../repositories/IChecklistRepository';
 import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/context/ToastContext';
 
 function getTodayString(): string {
   const d = new Date();
@@ -13,6 +14,7 @@ function getTodayString(): string {
 
 export function useChecklist(dateStr?: string) {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [items, setItems] = useState<ChecklistItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [source, setSource] = useState<'gemini' | 'rule-engine' | null>(null);
@@ -46,10 +48,11 @@ export function useChecklist(dateStr?: string) {
     
     try {
       await repo.toggleItem(id, completed, targetDate);
+      showToast(completed ? `Completed task: ${item.title}` : `Reopened task: ${item.title}`, "info");
     } catch (e) {
       console.error(e);
     }
-  }, [items, repo, targetDate]);
+  }, [items, repo, targetDate, showToast]);
 
   const generateChecklist = useCallback(async () => {
     if (!user?.uid) return;

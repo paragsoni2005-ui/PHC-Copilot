@@ -68,9 +68,16 @@ export default function DashboardPage() {
               <span>AI Operational Insight</span>
             </div>
             <h1 className="hero-title">Daily Briefing & Forecast</h1>
-            <p className="hero-description text-body-base">
-              {forecast?.aiRecommendation || "Loading recommendations..."}
-            </p>
+            <div className="hero-description text-body-base" style={{ width: '100%' }}>
+              {footLoading ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%', margin: '8px 0' }}>
+                  <div className="skeleton skeleton-text" style={{ width: '85%' }}></div>
+                  <div className="skeleton skeleton-text" style={{ width: '60%' }}></div>
+                </div>
+              ) : (
+                forecast?.aiRecommendation || "Loading recommendations..."
+              )}
+            </div>
 
             <div className="hero-action-row">
               <button className="btn-ai-action" onClick={handleGenerateBriefing}>
@@ -98,8 +105,17 @@ export default function DashboardPage() {
               <span className="text-label-caps">Medicine Alert</span>
             </div>
             <div className="stat-body">
-              <h2 className="stat-value">{medLoading ? "..." : `${totalAlertItems} Items Low`}</h2>
-              <p className="stat-sub">{medLoading ? "Calculating stock..." : alertSubtitle}</p>
+              {medLoading ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div className="skeleton skeleton-title" style={{ width: '60%', margin: 0 }}></div>
+                  <div className="skeleton skeleton-text" style={{ width: '80%', margin: 0 }}></div>
+                </div>
+              ) : (
+                <>
+                  <h2 className="stat-value">{totalAlertItems} Items Low</h2>
+                  <p className="stat-sub">{alertSubtitle}</p>
+                </>
+              )}
             </div>
             <div className="stat-footer">
               <span>View Inventory</span>
@@ -113,8 +129,17 @@ export default function DashboardPage() {
               <span className="text-label-caps">Footfall Forecast</span>
             </div>
             <div className="stat-body">
-              <h2 className="stat-value">{footLoading ? "..." : `${forecast?.predictedCount || 0} Patients`}</h2>
-              <p className="stat-sub">{footLoading ? "Loading forecast..." : `Risk level: ${forecast?.riskLevel}`}</p>
+              {footLoading ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div className="skeleton skeleton-title" style={{ width: '60%', margin: 0 }}></div>
+                  <div className="skeleton skeleton-text" style={{ width: '80%', margin: 0 }}></div>
+                </div>
+              ) : (
+                <>
+                  <h2 className="stat-value">{forecast?.predictedCount || 0} Patients</h2>
+                  <p className="stat-sub">Risk level: {forecast?.riskLevel}</p>
+                </>
+              )}
             </div>
             <div className="stat-footer">
               <span>Analyze Trends</span>
@@ -128,8 +153,17 @@ export default function DashboardPage() {
               <span className="text-label-caps">Doctor Attendance</span>
             </div>
             <div className="stat-body">
-              <h2 className="stat-value">{docLoading ? "..." : coverageText}</h2>
-              <p className="stat-sub">{docLoading ? "Syncing roster..." : coverageSubtitle}</p>
+              {docLoading ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div className="skeleton skeleton-title" style={{ width: '60%', margin: 0 }}></div>
+                  <div className="skeleton skeleton-text" style={{ width: '80%', margin: 0 }}></div>
+                </div>
+              ) : (
+                <>
+                  <h2 className="stat-value">{coverageText}</h2>
+                  <p className="stat-sub">{coverageSubtitle}</p>
+                </>
+              )}
             </div>
             <div className="stat-footer">
               <span>View Roster</span>
@@ -143,8 +177,17 @@ export default function DashboardPage() {
               <span className="text-label-caps">Operational Risk</span>
             </div>
             <div className="stat-body">
-              <h2 className="stat-value">{medLoading ? "..." : medStats.criticalCount > 0 ? "High Risk" : "Normal"}</h2>
-              <p className="stat-sub">{medLoading ? "Loading risks..." : medStats.criticalCount > 0 ? `${medStats.criticalCount} stockout warnings` : "Operations stable"}</p>
+              {medLoading ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div className="skeleton skeleton-title" style={{ width: '60%', margin: 0 }}></div>
+                  <div className="skeleton skeleton-text" style={{ width: '80%', margin: 0 }}></div>
+                </div>
+              ) : (
+                <>
+                  <h2 className="stat-value">{medStats.criticalCount > 0 ? "High Risk" : "Normal"}</h2>
+                  <p className="stat-sub">{medStats.criticalCount > 0 ? `${medStats.criticalCount} stockout warnings` : "Operations stable"}</p>
+                </>
+              )}
             </div>
             <div className="stat-footer">
               <span>View Briefing</span>
@@ -235,9 +278,16 @@ export default function DashboardPage() {
             <div className="panel-body" style={{ marginTop: '8px' }}>
               <div className="checklist-list">
                 {checkLoading ? (
-                  <div style={{ textAlign: 'center', padding: '24px', color: 'var(--color-outline)' }}>Loading checklist...</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div className="skeleton skeleton-table-row" style={{ height: '44px' }}></div>
+                    <div className="skeleton skeleton-table-row" style={{ height: '44px' }}></div>
+                    <div className="skeleton skeleton-table-row" style={{ height: '44px' }}></div>
+                  </div>
                 ) : tasks.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '24px', color: 'var(--color-outline)' }}>No checklist tasks generated today.</div>
+                  <div style={{ textAlign: 'center', padding: '32px 16px', color: 'var(--color-outline)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                    <CheckSquare size={36} style={{ color: 'var(--color-outline-variant)' }} />
+                    <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 600 }}>No checklist tasks generated today.</p>
+                  </div>
                 ) : (
                   tasks.map((task) => {
                     const isExpanded = !!expandedTasks[task.id];

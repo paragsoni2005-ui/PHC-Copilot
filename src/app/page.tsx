@@ -366,7 +366,11 @@ export default function RootPage() {
         <div className="tech-grid">
           <div className="tech-logo glass-container">
             <h4>Google Cloud</h4>
-            <p>Database & Hosting</p>
+            <p>Database Infrastructure</p>
+          </div>
+          <div className="tech-logo glass-container">
+            <h4>Vercel</h4>
+            <p>Edge Deployment & Hosting</p>
           </div>
           <div className="tech-logo glass-container">
             <h4>Gemini 2.5 Flash</h4>

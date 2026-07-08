@@ -42,9 +42,21 @@ export default function FootfallPage() {
   if (loading) {
     return (
       <AppShell>
-        <div className="footfall-container animate-fade-in flex-center" style={{ minHeight: '400px', flexDirection: 'column' }}>
-          <RefreshCw size={24} className="spin-icon text-clinical-teal" />
-          <p style={{ marginTop: '12px', color: 'var(--color-outline)' }}>Loading analytics data...</p>
+        <div className="footfall-container animate-fade-in">
+          {/* Header Skeleton */}
+          <div style={{ marginBottom: '24px' }}>
+            <div className="skeleton skeleton-title" style={{ width: '35%', height: '28px' }}></div>
+            <div className="skeleton skeleton-text" style={{ width: '55%', height: '14px' }}></div>
+          </div>
+          
+          {/* Hero Forecast Skeleton */}
+          <div className="skeleton" style={{ height: '140px', borderRadius: '12px', marginBottom: '24px' }}></div>
+
+          {/* Charts Grid Skeletons */}
+          <div className="charts-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '24px' }}>
+            <div className="skeleton" style={{ height: '320px', borderRadius: '12px' }}></div>
+            <div className="skeleton" style={{ height: '320px', borderRadius: '12px' }}></div>
+          </div>
         </div>
       </AppShell>
     );

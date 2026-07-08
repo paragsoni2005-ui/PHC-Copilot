@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import AppShell from "@/components/AppShell";
 import { useBriefing } from "@/hooks/useBriefing";
 import {
@@ -87,16 +88,28 @@ export default function BriefingPage() {
 
         {generating ? (
           /* Typing / Generating Loader Simulator */
-          <div className="generating-card glass-container flex-center flex-col">
-            <div className="gemini-badge-pulsing glow-pulsing">
-              <svg width="40" height="40" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path
-                  d="M90 6C90 19.2548 76.7452 32.51 90 32.51C90 45.765 103.255 32.51 90 32.51C90 19.2548 103.255 6 90 6Z"
-                  fill="var(--color-clinical-teal)"
+          <div className="generating-card glass-container flex-center flex-col" style={{ padding: '60px 24px' }}>
+            <div className="gemini-badge-pulsing" style={{ background: 'none', width: '80px', height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '24px' }}>
+              <svg width="80" height="80" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <motion.circle
+                  cx="60"
+                  cy="60"
+                  r="50"
+                  stroke="var(--color-clinical-teal)"
+                  strokeWidth="5"
+                  strokeLinecap="round"
+                  initial={{ pathLength: 0, rotate: 0 }}
+                  animate={{ pathLength: [0.1, 0.95, 0.1], rotate: 360 }}
+                  transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
                 />
-                <path
-                  d="M40 30C40 45 30 55 40 55C40 65 50 55 40 55C40 45 50 30 40 30Z"
-                  fill="var(--color-primary)"
+                <motion.path
+                  d="M60 35 L60 85 M35 60 L85 60"
+                  stroke="var(--color-primary)"
+                  strokeWidth="5"
+                  strokeLinecap="round"
+                  initial={{ scale: 0.8, opacity: 0.4 }}
+                  animate={{ scale: [0.8, 1.15, 0.8], opacity: [0.4, 1, 0.4] }}
+                  transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
                 />
               </svg>
             </div>
