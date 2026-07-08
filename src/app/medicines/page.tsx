@@ -704,12 +704,13 @@ export default function MedicinesPage() {
         }
 
         .recommendation-panel {
-          background-color: var(--color-primary-container);
-          color: var(--color-on-primary-container);
+          background-color: rgba(13, 148, 136, 0.08);
+          color: var(--color-primary);
           padding: var(--spacing-space-4);
           border-radius: var(--rounded-md);
           margin-bottom: var(--spacing-space-4);
-          border-left: 4px solid var(--color-primary);
+          border: 1px solid rgba(13, 148, 136, 0.15);
+          border-left: 4px solid var(--color-clinical-teal);
         }
 
         .rec-title {
@@ -718,6 +719,11 @@ export default function MedicinesPage() {
           margin-bottom: var(--spacing-space-1);
           text-transform: uppercase;
           letter-spacing: 0.05em;
+          color: var(--color-clinical-teal);
+        }
+
+        .recommendation-panel .rec-text {
+          color: var(--color-primary);
         }
 
         .reasoning-panel {

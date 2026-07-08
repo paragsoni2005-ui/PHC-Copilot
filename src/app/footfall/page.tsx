@@ -339,8 +339,10 @@ export default function FootfallPage() {
         }
 
         .bg-teal-container {
-          background-color: var(--color-primary-container);
-          color: var(--color-on-primary-container);
+          background-color: rgba(13, 148, 136, 0.08);
+          color: var(--color-primary);
+          border: 1px solid rgba(13, 148, 136, 0.15);
+          border-left: 4px solid var(--color-clinical-teal);
         }
 
         .rec-icon-box {
@@ -350,6 +352,7 @@ export default function FootfallPage() {
 
         .rec-text {
           line-height: 1.5;
+          color: var(--color-primary);
         }
 
         /* Charts Section */
