@@ -405,7 +405,7 @@ export default function OPDRegistrationPage() {
             
             <div className="patient-card-details">
               <div className="detail-meta-header">
-                <div className="detail-meta-id">Registration ID: <code>{selectedPatient.patientId}</code></div>
+                <div className="detail-meta-id">Registration ID: <code className="pat-id-code">{selectedPatient.patientId}</code></div>
                 <div className="detail-meta-time">Registered: {new Date(selectedPatient.registeredAt).toLocaleString()}</div>
               </div>
 
@@ -529,19 +529,21 @@ export default function OPDRegistrationPage() {
         .input-group input, 
         .input-group select, 
         .input-group textarea {
-          border: 1px solid var(--color-outline-variant);
-          border-radius: var(--rounded-default);
-          background-color: var(--color-surface-container-lowest);
-          padding: 8px 12px;
+          border: 1px solid var(--color-border-subtle);
+          border-radius: var(--rounded-md);
+          background-color: #ffffff;
+          padding: 10px 14px;
           font-size: 0.875rem;
-          transition: border-color 0.2s ease;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
           width: 100%;
+          color: var(--color-on-surface);
         }
 
         .input-group input:focus, 
         .input-group select:focus, 
         .input-group textarea:focus {
           border-color: var(--color-clinical-teal);
+          box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
         }
 
         .symptoms-chips-container {
@@ -552,54 +554,74 @@ export default function OPDRegistrationPage() {
         }
 
         .symptom-chip {
-          padding: 6px 14px;
+          padding: 8px 16px;
           border-radius: var(--rounded-full);
-          border: 1px solid var(--color-outline-variant);
-          background-color: var(--color-surface-container-lowest);
+          border: 1px solid var(--color-border-subtle);
+          background-color: #ffffff;
           color: var(--color-on-surface-variant);
           font-size: 0.85rem;
           font-weight: 500;
           cursor: pointer;
-          transition: all 0.2s ease;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .symptom-chip:hover {
           border-color: var(--color-clinical-teal);
           color: var(--color-clinical-teal);
           background-color: rgba(13, 148, 136, 0.05);
+          transform: translateY(-1px);
         }
 
         .symptom-chip.active {
           border-color: var(--color-clinical-teal);
           background-color: var(--color-clinical-teal);
           color: white;
-          box-shadow: 0 2px 6px rgba(13, 148, 136, 0.25);
+          box-shadow: 0 4px 10px rgba(13, 148, 136, 0.25);
+        }
+
+        .symptom-chip.active:hover {
+          background-color: #0b7a70;
+          border-color: #0b7a70;
+          transform: translateY(-1px);
         }
 
         .other-symptoms-input {
           margin-top: 8px;
-          border: 1px solid var(--color-outline-variant);
-          border-radius: var(--rounded-default);
-          padding: 8px 12px;
+          border: 1px solid var(--color-border-subtle);
+          border-radius: var(--rounded-md);
+          padding: 10px 14px;
           font-size: 0.875rem;
           width: 100%;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .other-symptoms-input:focus {
+          border-color: var(--color-clinical-teal);
+          box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
         }
 
         .btn-primary-form {
           background-color: var(--color-clinical-teal);
           color: white;
-          padding: 12px;
-          border-radius: var(--rounded-default);
+          padding: 14px;
+          border-radius: var(--rounded-md);
           font-weight: 600;
-          font-size: 0.9rem;
-          box-shadow: 0 4px 10px rgba(13, 148, 136, 0.2);
+          font-size: 0.95rem;
+          box-shadow: 0 4px 12px rgba(13, 148, 136, 0.25);
           margin-top: 8px;
           border: none;
           cursor: pointer;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .btn-primary-form:hover {
           background-color: #0b7a70;
+          transform: translateY(-1px);
+          box-shadow: 0 6px 16px rgba(13, 148, 136, 0.35);
+        }
+
+        .btn-primary-form:active {
+          transform: translateY(0);
         }
 
         .alert-box {
@@ -645,12 +667,18 @@ export default function OPDRegistrationPage() {
 
         .search-input {
           width: 100%;
-          height: 40px;
+          height: 42px;
           padding-left: 38px;
-          border: 1px solid var(--color-outline-variant);
-          border-radius: var(--rounded-default);
+          border: 1px solid var(--color-border-subtle);
+          border-radius: var(--rounded-md);
           background: white;
           font-size: 0.875rem;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .search-input:focus {
+          border-color: var(--color-clinical-teal);
+          box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
         }
 
         .filter-row {
@@ -659,13 +687,21 @@ export default function OPDRegistrationPage() {
 
         .filter-item select {
           width: 100%;
-          height: 38px;
-          border: 1px solid var(--color-outline-variant);
-          border-radius: var(--rounded-default);
-          padding: 0 10px;
+          height: 40px;
+          border: 1px solid var(--color-border-subtle);
+          border-radius: var(--rounded-md);
+          padding: 0 12px;
           background: white;
           font-size: 0.85rem;
           color: var(--color-on-surface-variant);
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          outline: none;
+          cursor: pointer;
+        }
+
+        .filter-item select:focus {
+          border-color: var(--color-clinical-teal);
+          box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
         }
 
         /* Patients List and Table styling */
@@ -703,6 +739,14 @@ export default function OPDRegistrationPage() {
           padding: 10px 12px;
           border-bottom: 1px solid var(--color-border-subtle);
           font-weight: 600;
+        }
+
+        .patients-table tbody tr {
+          transition: background-color 0.2s ease;
+        }
+
+        .patients-table tbody tr:hover {
+          background-color: rgba(13, 148, 136, 0.02);
         }
 
         .patients-table td {
@@ -767,20 +811,23 @@ export default function OPDRegistrationPage() {
         }
 
         .btn-action-view {
-          width: 28px;
-          height: 28px;
-          border-radius: var(--rounded-default);
+          width: 32px;
+          height: 32px;
+          border-radius: var(--rounded-full);
           border: 1px solid var(--color-border-subtle);
           color: var(--color-outline);
           cursor: pointer;
-          background: var(--color-surface-container-lowest);
+          background: #ffffff;
           margin-left: auto;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .btn-action-view:hover {
           color: var(--color-clinical-teal);
           border-color: var(--color-clinical-teal);
           background: rgba(13, 148, 136, 0.05);
+          box-shadow: 0 2px 8px rgba(13, 148, 136, 0.15);
+          transform: translateY(-1px);
         }
 
         .table-empty-state {
@@ -823,12 +870,20 @@ export default function OPDRegistrationPage() {
 
         .detail-meta-header {
           display: flex;
-          justify-content: space-between;
+          flex-direction: column;
+          gap: 6px;
           font-size: 0.75rem;
           color: var(--color-outline);
           background: var(--color-surface-container-low);
-          padding: 8px 12px;
-          border-radius: var(--rounded-sm);
+          padding: 10px 14px;
+          border-radius: var(--rounded-default);
+          border: 1px solid var(--color-border-subtle);
+        }
+
+        .pat-id-code {
+          color: var(--color-clinical-teal);
+          font-family: monospace;
+          font-weight: 600;
         }
 
         .details-grid {
