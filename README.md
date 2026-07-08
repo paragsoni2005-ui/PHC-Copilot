@@ -4,7 +4,7 @@
 
 PHC Copilot transforms Primary Health Centre operations from passive record-keeping into **AI-assisted operational decision support**. Powered by **Google Gemini 2.5 Flash**, it analyzes real-time medicine inventory, patient footfall, and doctor attendance data to generate actionable daily briefings and smart recommendations — helping healthcare workers make better decisions in under 30 seconds.
 
-🔗 **Live Demo:** [Your Vercel URL here]
+🔗 **Live Demo:** [https://phc-copilot.vercel.app]
 
 ---
 
