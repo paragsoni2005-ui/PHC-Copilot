@@ -279,7 +279,7 @@ export default function OPDRegistrationPage() {
           {/* Right Column: Registrations List & Table */}
           <section className="list-column flex-column gap-4">
             {/* Search and Filters Toolbar */}
-            <div className="toolbar-section glass-container flex-column gap-2">
+            <div className="toolbar-section glass-container">
               <div className="search-box">
                 <Search size={18} className="search-icon" />
                 <input
@@ -291,7 +291,7 @@ export default function OPDRegistrationPage() {
                 />
               </div>
 
-              <div className="filter-row flex-between gap-2">
+              <div className="filter-row">
                 <div className="filter-item flex-1">
                   <select value={departmentFilter} onChange={(e) => setDepartmentFilter(e.target.value)}>
                     <option value="all">All Departments</option>
@@ -648,27 +648,30 @@ export default function OPDRegistrationPage() {
         .flex-1 { flex: 1; }
 
         .toolbar-section {
-          padding: 16px;
+          padding: var(--spacing-space-5);
           display: flex;
+          flex-direction: column;
+          gap: var(--spacing-space-4);
         }
 
         .search-box {
           position: relative;
           width: 100%;
+          display: flex;
+          align-items: center;
         }
 
-        .search-icon {
+        :global(.search-icon) {
           position: absolute;
-          left: 12px;
-          top: 50%;
-          transform: translateY(-50%);
+          left: 14px;
           color: var(--color-outline);
+          pointer-events: none;
         }
 
         .search-input {
           width: 100%;
           height: 42px;
-          padding-left: 38px;
+          padding-left: 42px;
           border: 1px solid var(--color-border-subtle);
           border-radius: var(--rounded-md);
           background: white;
@@ -682,7 +685,16 @@ export default function OPDRegistrationPage() {
         }
 
         .filter-row {
+          display: flex;
+          gap: var(--spacing-space-3);
           width: 100%;
+        }
+
+        @media (max-width: 768px) {
+          .filter-row {
+            flex-direction: column;
+            gap: var(--spacing-space-2);
+          }
         }
 
         .filter-item select {
@@ -848,6 +860,26 @@ export default function OPDRegistrationPage() {
         }
 
         /* Detail Modal structure */
+        .modal-backdrop {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background-color: rgba(9, 20, 38, 0.4);
+          backdrop-filter: blur(4px);
+          -webkit-backdrop-filter: blur(4px);
+          z-index: 1000;
+        }
+
+        .modal-card {
+          width: 95%;
+          max-width: 500px;
+          padding: var(--spacing-space-6);
+          box-shadow: 0 20px 40px rgba(9, 20, 38, 0.15);
+          z-index: 1001;
+        }
+
         .btn-close-modal {
           margin-left: auto;
           color: var(--color-outline);
