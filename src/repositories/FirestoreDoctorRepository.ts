@@ -12,9 +12,11 @@ import {
 } from 'firebase/firestore';
 
 export class FirestoreDoctorRepository implements IDoctorRepository {
+  constructor(private userId: string) {}
+
   async getAll(): Promise<Doctor[]> {
-    await FirestoreSeeder.seedIfEmpty(db);
-    const snap = await getDocs(collection(db, 'doctors'));
+    await FirestoreSeeder.seedIfEmpty(db, this.userId);
+    const snap = await getDocs(collection(db, 'users', this.userId, 'doctors'));
     const list: Doctor[] = [];
     snap.forEach((doc) => {
       list.push({ ...(doc.data() as Doctor), id: doc.id });
@@ -23,7 +25,7 @@ export class FirestoreDoctorRepository implements IDoctorRepository {
   }
 
   async updateStatus(id: string, status: Doctor['status']): Promise<Doctor> {
-    const docRef = doc(db, 'doctors', id);
+    const docRef = doc(db, 'users', this.userId, 'doctors', id);
     const docSnap = await getDoc(docRef);
     if (!docSnap.exists()) {
       throw new Error(`Doctor with id ${id} not found`);
@@ -42,9 +44,9 @@ export class FirestoreDoctorRepository implements IDoctorRepository {
     let active = true;
 
     const setup = async () => {
-      await FirestoreSeeder.seedIfEmpty(db);
+      await FirestoreSeeder.seedIfEmpty(db, this.userId);
       if (!active) return;
-      unsub = onSnapshot(collection(db, 'doctors'), (snap) => {
+      unsub = onSnapshot(collection(db, 'users', this.userId, 'doctors'), (snap) => {
         const list: Doctor[] = [];
         snap.forEach((doc) => {
           list.push({ ...(doc.data() as Doctor), id: doc.id });

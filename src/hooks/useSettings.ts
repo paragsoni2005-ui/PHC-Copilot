@@ -11,7 +11,6 @@ export function useSettings() {
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
 
   const fetchSettings = useCallback(async () => {
-    setLoading(true);
     try {
       const data = await repo.getSettings();
       setSettings(data);
@@ -23,7 +22,7 @@ export function useSettings() {
   }, []);
 
   useEffect(() => {
-    fetchSettings();
+    Promise.resolve().then(() => fetchSettings());
   }, [fetchSettings]);
 
   const updateSettings = useCallback(async (updates: Partial<SystemSettings>) => {

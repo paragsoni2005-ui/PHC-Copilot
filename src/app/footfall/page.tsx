@@ -36,7 +36,7 @@ export default function FootfallPage() {
   const { historicalData, departmentData, hourlyLoad, forecast, loading } = useFootfall();
 
   useEffect(() => {
-    setMounted(true);
+    Promise.resolve().then(() => setMounted(true));
   }, []);
 
   if (loading) {

@@ -17,6 +17,8 @@ import {
 } from "firebase/firestore";
 
 export class FirestorePatientRepository implements IPatientRepository {
+  constructor(private userId: string) {}
+
   private convertTimestamp(data: any): any {
     if (data && data.registeredAt && typeof data.registeredAt.toDate === "function") {
       return {
@@ -28,8 +30,8 @@ export class FirestorePatientRepository implements IPatientRepository {
   }
 
   async getAll(): Promise<Patient[]> {
-    await FirestoreSeeder.seedIfEmpty(db);
-    const snap = await getDocs(query(collection(db, "patients"), orderBy("registeredAt", "desc")));
+    await FirestoreSeeder.seedIfEmpty(db, this.userId);
+    const snap = await getDocs(query(collection(db, "users", this.userId, "patients"), orderBy("registeredAt", "desc")));
     const list: Patient[] = [];
     snap.forEach((doc) => {
       const data = doc.data();
@@ -39,13 +41,13 @@ export class FirestorePatientRepository implements IPatientRepository {
   }
 
   async getTodayPatients(): Promise<Patient[]> {
-    await FirestoreSeeder.seedIfEmpty(db);
+    await FirestoreSeeder.seedIfEmpty(db, this.userId);
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
     const startTimestamp = Timestamp.fromDate(startOfToday);
 
     const q = query(
-      collection(db, "patients"),
+      collection(db, "users", this.userId, "patients"),
       where("registeredAt", ">=", startTimestamp),
       orderBy("registeredAt", "desc")
     );
@@ -60,7 +62,7 @@ export class FirestorePatientRepository implements IPatientRepository {
   }
 
   async getById(id: string): Promise<Patient | null> {
-    const docSnap = await getDoc(doc(db, "patients", id));
+    const docSnap = await getDoc(doc(db, "users", this.userId, "patients", id));
     if (!docSnap.exists()) return null;
     const data = docSnap.data();
     return this.convertTimestamp({ ...data, patientId: docSnap.id }) as Patient;
@@ -74,12 +76,12 @@ export class FirestorePatientRepository implements IPatientRepository {
       patientId,
       registeredAt
     };
-    await setDoc(doc(db, "patients", patientId), newPatient);
+    await setDoc(doc(db, "users", this.userId, "patients", patientId), newPatient);
     return this.convertTimestamp(newPatient) as Patient;
   }
 
   async update(id: string, updates: Partial<Patient>): Promise<Patient> {
-    const docRef = doc(db, "patients", id);
+    const docRef = doc(db, "users", this.userId, "patients", id);
     const docSnap = await getDoc(docRef);
     if (!docSnap.exists()) {
       throw new Error(`Patient with id ${id} not found`);
@@ -94,7 +96,7 @@ export class FirestorePatientRepository implements IPatientRepository {
   }
 
   async delete(id: string): Promise<boolean> {
-    const docRef = doc(db, "patients", id);
+    const docRef = doc(db, "users", this.userId, "patients", id);
     const docSnap = await getDoc(docRef);
     if (!docSnap.exists()) return false;
     await deleteDoc(docRef);
@@ -106,7 +108,7 @@ export class FirestorePatientRepository implements IPatientRepository {
     let active = true;
 
     const setup = async () => {
-      await FirestoreSeeder.seedIfEmpty(db);
+      await FirestoreSeeder.seedIfEmpty(db, this.userId);
       if (!active) return;
 
       const startOfToday = new Date();
@@ -114,7 +116,7 @@ export class FirestorePatientRepository implements IPatientRepository {
       const startTimestamp = Timestamp.fromDate(startOfToday);
 
       const q = query(
-        collection(db, "patients"),
+        collection(db, "users", this.userId, "patients"),
         where("registeredAt", ">=", startTimestamp),
         orderBy("registeredAt", "desc")
       );
@@ -142,7 +144,7 @@ export class FirestorePatientRepository implements IPatientRepository {
     let active = true;
 
     const setup = async () => {
-      await FirestoreSeeder.seedIfEmpty(db);
+      await FirestoreSeeder.seedIfEmpty(db, this.userId);
       if (!active) return;
 
       const cutoffDate = new Date();
@@ -151,7 +153,7 @@ export class FirestorePatientRepository implements IPatientRepository {
       const cutoffTimestamp = Timestamp.fromDate(cutoffDate);
 
       const q = query(
-        collection(db, "patients"),
+        collection(db, "users", this.userId, "patients"),
         where("registeredAt", ">=", cutoffTimestamp),
         orderBy("registeredAt", "desc")
       );

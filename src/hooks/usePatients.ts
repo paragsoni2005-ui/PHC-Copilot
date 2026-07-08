@@ -3,8 +3,10 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { Patient } from "@/types/store";
 import { FirestorePatientRepository } from "@/repositories/FirestorePatientRepository";
+import { useAuth } from "@/context/AuthContext";
 
 export function usePatients() {
+  const { user } = useAuth();
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -15,18 +17,18 @@ export function usePatients() {
   const [departmentFilter, setDepartmentFilter] = useState("all");
   const [visitTypeFilter, setVisitTypeFilter] = useState("all");
 
-  const repo = useMemo(() => new FirestorePatientRepository(), []);
+  const repo = useMemo(() => new FirestorePatientRepository(user?.uid || 'demo-user'), [user?.uid]);
 
   // Listen to today's patient updates in real-time
   useEffect(() => {
-    setLoading(true);
+    if (!user?.uid) return;
     const unsubscribe = repo.listenToToday((data) => {
       setPatients(data);
       setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [repo]);
+  }, [repo, user?.uid]);
 
   // Register patient method
   const registerPatient = useCallback(async (patientData: Omit<Patient, "patientId" | "registeredAt" | "createdBy" | "status">) => {
@@ -79,7 +81,7 @@ export function usePatients() {
   return {
     patients,
     filteredPatients,
-    loading,
+    loading: loading || !user?.uid,
     error,
     registerPatient,
     searchQuery,

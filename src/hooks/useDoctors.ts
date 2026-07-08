@@ -1,33 +1,18 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Doctor } from '@/types/store';
-import { LocalDoctorRepository } from '../repositories/LocalDoctorRepository';
 import { FirestoreDoctorRepository } from '../repositories/FirestoreDoctorRepository';
-import { LocalSettingsRepository } from '../repositories/LocalSettingsRepository';
-import { IDoctorRepository } from '../repositories/IDoctorRepository';
+import { useAuth } from '@/context/AuthContext';
 
 export function useDoctors() {
+  const { user } = useAuth();
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(true);
-  const [repo, setRepo] = useState<IDoctorRepository | null>(null);
 
-  // Initialize repository based on active configurations
-  useEffect(() => {
-    const initRepo = async () => {
-      const settingsRepo = new LocalSettingsRepository();
-      const settings = await settingsRepo.getSettings();
-      if (settings.mode === 'live') {
-        setRepo(new FirestoreDoctorRepository());
-      } else {
-        setRepo(new LocalDoctorRepository());
-      }
-    };
-    initRepo();
-  }, []);
+  const repo = useMemo(() => user?.uid ? new FirestoreDoctorRepository(user.uid) : null, [user]);
 
   // Subscribe to real-time updates
   useEffect(() => {
     if (!repo) return;
-    setLoading(true);
     const unsubscribe = repo.listen((data) => {
       setDoctors(data);
       setLoading(false);
@@ -40,10 +25,7 @@ export function useDoctors() {
     const doc = doctors.find((d) => d.id === id);
     if (!doc) return;
     const newStatus: Doctor['status'] = doc.status === 'present' ? 'absent' : 'present';
-    const updated = await repo.updateStatus(id, newStatus);
-    if (repo instanceof LocalDoctorRepository) {
-      setDoctors((prev) => prev.map((d) => (d.id === id ? updated : d)));
-    }
+    await repo.updateStatus(id, newStatus);
   }, [doctors, repo]);
 
   const stats = useMemo(() => {
@@ -67,34 +49,27 @@ export function useDoctors() {
 
   const getAIStaffingImpact = useCallback(async (absents: Doctor[]) => {
     try {
-      const { LocalSettingsRepository } = await import('../repositories/LocalSettingsRepository');
-      const settingsRepo = new LocalSettingsRepository();
-      const settings = await settingsRepo.getSettings();
-
-      if (settings.mode === 'live') {
-        const response = await fetch('/api/copilot', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-gemini-api-key': settings.apiKey,
+      const response = await fetch('/api/copilot', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'attendance',
+          payload: {
+            absentDoctors: absents,
           },
-          body: JSON.stringify({
-            action: 'attendance',
-            payload: {
-              absentDoctors: absents,
-            },
-          }),
-        });
+        }),
+      });
 
-        const data = await response.json();
-        if (data.success && data.data) {
-          return {
-            waitTimeIncrease: data.data.waitTimeIncrease,
-            riskAreas: data.data.riskAreas,
-            recommendations: data.data.recommendations,
-            fallback: false,
-          };
-        }
+      const data = await response.json();
+      if (data.success && data.data) {
+        return {
+          waitTimeIncrease: data.data.waitTimeIncrease,
+          riskAreas: data.data.riskAreas,
+          recommendations: data.data.recommendations,
+          fallback: false,
+        };
       }
     } catch (e) {
       console.error('Error fetching AI staffing impact:', e);
@@ -129,7 +104,7 @@ export function useDoctors() {
 
   return {
     doctors,
-    loading,
+    loading: loading || !user?.uid,
     stats,
     absentDoctors,
     toggleAttendance,

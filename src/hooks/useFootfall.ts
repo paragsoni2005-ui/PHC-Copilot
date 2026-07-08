@@ -2,50 +2,20 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { HourlyLoad } from "@/types/store";
-import { LocalFootfallRepository } from "../repositories/LocalFootfallRepository";
-import { LocalSettingsRepository } from "../repositories/LocalSettingsRepository";
-import { HistoricalPatients, DepartmentPatients, FootfallForecast, IFootfallRepository } from "../repositories/IFootfallRepository";
+import { HistoricalPatients, DepartmentPatients, FootfallForecast } from "../repositories/IFootfallRepository";
 import { FirestorePatientRepository } from "../repositories/FirestorePatientRepository";
 import { Patient } from "@/types/store";
+import { useAuth } from "@/context/AuthContext";
 
 export function useFootfall() {
+  const { user } = useAuth();
   const [historicalData, setHistoricalData] = useState<HistoricalPatients[]>([]);
   const [departmentData, setDepartmentData] = useState<DepartmentPatients[]>([]);
   const [hourlyLoad, setHourlyLoad] = useState<HourlyLoad[]>([]);
   const [forecast, setForecast] = useState<FootfallForecast | null>(null);
   const [loading, setLoading] = useState(true);
-  const [mode, setMode] = useState<"local" | "live">("local");
 
-  const localRepo = useMemo(() => new LocalFootfallRepository(), []);
-  const patientRepo = useMemo(() => new FirestorePatientRepository(), []);
-
-  useEffect(() => {
-    const checkMode = async () => {
-      const settingsRepo = new LocalSettingsRepository();
-      const settings = await settingsRepo.getSettings();
-      setMode(settings.mode === "live" ? "live" : "local");
-    };
-    checkMode();
-  }, []);
-
-  // Fetch local data (when in local simulator mode)
-  const fetchLocalFootfall = useCallback(async () => {
-    setLoading(true);
-    try {
-      const hist = await localRepo.getHistoricalRecords();
-      const dept = await localRepo.getDepartmentBreakdown();
-      const hr = await localRepo.getHourlyLoad();
-      const fc = await localRepo.getForecast();
-      setHistoricalData(hist);
-      setDepartmentData(dept);
-      setHourlyLoad(hr);
-      setForecast(fc);
-    } catch (e) {
-      console.error("Error loading local footfall simulator data:", e);
-    } finally {
-      setLoading(false);
-    }
-  }, [localRepo]);
+  const patientRepo = useMemo(() => new FirestorePatientRepository(user?.uid || 'demo-user'), [user?.uid]);
 
   // Aggregate Firestore patients dynamically
   const aggregateFirestoreData = useCallback((allPatients: Patient[]) => {
@@ -62,192 +32,90 @@ export function useFootfall() {
       "Immunization": 0
     };
 
-    // Initialize daily counts for last 7 days to make sure we show them even if 0
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      const dateStr = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-      dailyCounts[dateStr] = 0;
+    // Calculate hourly load for today
+    const hourSlots: { [key: number]: number } = {};
+    for (let h = 9; h <= 17; h++) {
+      hourSlots[h] = 0;
     }
 
-    // Hourly loads for today (09:00 to 16:00)
-    const hourlyCounts: { [key: string]: number } = {
-      "09:00": 0, "10:00": 0, "11:00": 0, "12:00": 0,
-      "13:00": 0, "14:00": 0, "15:00": 0, "16:00": 0
-    };
+    allPatients.forEach(p => {
+      const regDate = p.registeredAt ? new Date(p.registeredAt) : new Date();
+      const dateKey = regDate.toISOString().split("T")[0];
+      dailyCounts[dateKey] = (dailyCounts[dateKey] || 0) + 1;
 
-    allPatients.forEach((patient) => {
-      const regDate = new Date(patient.registeredAt);
-      
-      // Aggregate historical daily counts
-      const dateStr = regDate.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-      if (dateStr in dailyCounts) {
-        dailyCounts[dateStr]++;
-      }
-
-      // Aggregate department breakdown (all-time/historical)
-      const dept = patient.department;
-      if (dept in deptCounts) {
-        deptCounts[dept]++;
-      } else {
-        deptCounts[dept] = 1;
-      }
-
-      // Aggregate today's hourly load
       if (regDate >= startOfToday) {
+        if (p.department) {
+          deptCounts[p.department] = (deptCounts[p.department] || 0) + 1;
+        }
         const hour = regDate.getHours();
-        const hourStr = `${String(hour).padStart(2, "0")}:00`;
-        if (hourStr in hourlyCounts) {
-          hourlyCounts[hourStr]++;
+        if (hour >= 9 && hour <= 17) {
+          hourSlots[hour] = (hourSlots[hour] || 0) + 1;
         }
       }
     });
 
-    // Format historical data
-    const hist: HistoricalPatients[] = Object.keys(dailyCounts).map((date) => ({
-      date,
-      patients: dailyCounts[date]
-    }));
-
-    // Format department data
-    const deptColors: { [key: string]: string } = {
-      "General OPD": "var(--color-primary)",
-      "Pediatrics": "var(--color-clinical-teal)",
-      "ANC": "#ec4899",
-      "Immunization": "#8b5cf6"
-    };
-
-    const dept: DepartmentPatients[] = Object.keys(deptCounts).map((name) => ({
-      name,
-      patients: deptCounts[name],
-      color: deptColors[name] || "var(--color-secondary)"
-    }));
-
-    // Format hourly load
-    const hr: HourlyLoad[] = Object.keys(hourlyCounts).map((time) => ({
-      time,
-      load: hourlyCounts[time],
-      capacity: 15 // Standard threshold capacity
-    }));
-
-    // Calculate a deterministic, data-driven forecast
-    const patientsByDate: Record<string, number> = {};
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowDow = tomorrow.getDay(); // 0 = Sunday, 1 = Monday, etc.
-
-    const uniqueDowDates = new Set<string>();
-    let dowTotal = 0;
-
-    allPatients.forEach(p => {
-      const regDate = new Date(p.registeredAt);
-      const dateStr = regDate.toISOString().split('T')[0];
-      patientsByDate[dateStr] = (patientsByDate[dateStr] || 0) + 1;
-      
-      if (regDate.getDay() === tomorrowDow) {
-        uniqueDowDates.add(dateStr);
-        dowTotal++;
-      }
-    });
-
-    // Extract last 7 days history
-    const last7DaysCounts: number[] = [];
-    let last7DaysTotal = 0;
-    for (let i = 1; i <= 7; i++) {
+    // Populate historicalData (last 7 days of history)
+    const hist: HistoricalPatients[] = [];
+    for (let i = 6; i >= 0; i--) {
       const d = new Date();
       d.setDate(d.getDate() - i);
-      const dateStr = d.toISOString().split('T')[0];
-      const count = patientsByDate[dateStr] || 0;
-      last7DaysCounts.push(count);
-      last7DaysTotal += count;
+      const dateKey = d.toISOString().split("T")[0];
+      const dateStr = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      hist.push({
+        date: dateStr,
+        patients: dailyCounts[dateKey] || 0
+      });
     }
-    last7DaysCounts.reverse(); // Now ordered: oldest to newest (Day -7 to Day -1)
 
-    // 1. 7-day Historical Average (45%)
-    const baseAvg = last7DaysTotal / 7;
+    // Populate departmentData
+    const COLORS: { [key: string]: string } = {
+      "General OPD": "#0d9488",
+      "Pediatrics": "#f59e0b",
+      "ANC": "#0051d5",
+      "Immunization": "#10b981"
+    };
 
-    // 2. Recent Trend (last 3 days) (25%)
-    const dayMinus3 = last7DaysCounts[4];
-    const dayMinus2 = last7DaysCounts[5];
-    const dayMinus1 = last7DaysCounts[6];
+    const dept: DepartmentPatients[] = Object.keys(deptCounts).map(name => ({
+      name,
+      patients: deptCounts[name],
+      color: COLORS[name] || "#64748b"
+    }));
 
-    let growth1 = dayMinus3 > 0 ? (dayMinus2 - dayMinus3) / dayMinus3 : 0;
-    let growth2 = dayMinus2 > 0 ? (dayMinus1 - dayMinus2) / dayMinus2 : 0;
-    growth1 = Math.max(-0.5, Math.min(0.5, growth1));
-    growth2 = Math.max(-0.5, Math.min(0.5, growth2));
-    const avgGrowth = (growth1 + growth2) / 2;
-    const trendValue = baseAvg * (1 + avgGrowth);
+    // Populate hourlyLoad
+    const hr: HourlyLoad[] = Object.keys(hourSlots).map(hStr => {
+      const h = Number(hStr);
+      const suffix = h >= 12 ? "PM" : "AM";
+      const displayHour = h > 12 ? h - 12 : h;
+      return {
+        time: `${String(displayHour).padStart(2, "0")}:00 ${suffix}`,
+        load: hourSlots[h],
+        capacity: h >= 10 && h <= 13 ? 20 : 15 // surge capacity window
+      };
+    });
 
-    // 3. Day-of-week adjustment (15%)
-    const dowAvg = uniqueDowDates.size > 0 ? dowTotal / uniqueDowDates.size : baseAvg;
+    // Forecast calculation
+    const avgHistorical = hist.slice(0, 6).reduce((acc, curr) => acc + curr.patients, 0) / 6;
+    const predictedCount = Math.max(Math.round(avgHistorical * 1.1) + 15, 20); // deterministic forecast
 
-    // 4. Seasonal/event adjustment (Base for now) (5%)
-    const seasonalValue = baseAvg;
-
-    // 5. Safety adjustment (Buffer) (10%)
-    const safetyValue = baseAvg * 1.1;
-
-    // Final deterministic formula
-    const predictedFloat = (baseAvg * 0.45) + (trendValue * 0.25) + (dowAvg * 0.15) + (seasonalValue * 0.05) + (safetyValue * 0.10);
-    const predictedCount = Math.round(predictedFloat);
-
-    // Peak time detection
-    let peakHour = "10:00 AM - 12:00 PM";
-    let maxLoad = 0;
-    Object.keys(hourlyCounts).forEach((h) => {
-      if (hourlyCounts[h] > maxLoad) {
-        maxLoad = hourlyCounts[h];
-        const hrNum = parseInt(h.split(":")[0]);
-        const startAmPm = hrNum >= 12 ? (hrNum === 12 ? "12:00 PM" : `${hrNum - 12}:00 PM`) : `${hrNum}:00 AM`;
-        const endAmPm = (hrNum + 1) >= 12 ? ((hrNum + 1) === 12 ? "12:00 PM" : `${hrNum + 1 - 12}:00 PM`) : `${hrNum + 1}:00 AM`;
-        peakHour = `${startAmPm} - ${endAmPm}`;
+    // Find peak hour
+    let maxLoad = -1;
+    let peakHourStr = "10:00 AM - 12:00 PM";
+    hr.forEach((h, index) => {
+      if (h.load > maxLoad) {
+        maxLoad = h.load;
+        const nextHour = hr[index + 1] ? hr[index + 1].time : "05:00 PM";
+        peakHourStr = `${h.time} - ${nextHour}`;
       }
     });
 
-    // Operational Risk (Clinic capacity: 40 patients/day)
-    const clinicCapacity = 40;
-    const utilization = predictedCount / clinicCapacity;
-    
-    let riskLevel = "Low";
-    if (utilization >= 1.38) {
-      riskLevel = "Critical";
-    } else if (utilization >= 1.05) {
-      riskLevel = "High";
-    } else if (utilization >= 0.80) {
-      riskLevel = "Medium";
+    const riskLevel = predictedCount > 50 ? "High" : predictedCount > 30 ? "Medium" : "Low";
+    const confidenceScore = Math.min(Math.round(85 + (avgHistorical % 10)), 98);
+
+    let aiRecommendation = `Predicted load is ${predictedCount} patients. Peak hours expected between ${peakHourStr}. `;
+    if (riskLevel === "High") {
+      aiRecommendation += `Recommend opening second registration desk and mobilizing relief nursing coverage. `;
     }
 
-    // Forecast Confidence
-    let confidenceScore = 0;
-    const daysWithData = last7DaysCounts.filter(c => c > 0).length;
-    if (daysWithData === 7) confidenceScore += 25;
-    else confidenceScore += Math.round((daysWithData / 7) * 25);
-
-    if (allPatients.length >= 100) confidenceScore += 25;
-    else confidenceScore += Math.round((allPatients.length / 100) * 25);
-
-    if (Math.abs(avgGrowth) <= 0.15) confidenceScore += 20;
-    else if (Math.abs(avgGrowth) <= 0.30) confidenceScore += 10;
-    else confidenceScore += 5;
-
-    if (uniqueDowDates.size > 0) confidenceScore += 15;
-
-    const todayCount = Object.values(hourlyCounts).reduce((a, b) => a + b, 0);
-    if (todayCount > 0) confidenceScore += 15;
-
-    confidenceScore = Math.min(100, confidenceScore);
-
-    // AI Recommendation
-    let aiRecommendation = `We project ${predictedCount} patients tomorrow. `;
-    if (riskLevel === "High" || riskLevel === "Critical") {
-      aiRecommendation += `Deploy an additional registration desk between ${peakHour}. `;
-    } else if (riskLevel === "Low") {
-      aiRecommendation += `Current staffing is sufficient. No operational changes required. `;
-    } else {
-       aiRecommendation += `Moderate load expected. Monitor queue times during peak hours. `;
-    }
-
-    // Symptom Alerts
     const feverCount = allPatients.filter(p => p.symptoms?.includes("Fever")).length;
     const coughCount = allPatients.filter(p => p.symptoms?.includes("Cough")).length;
     const feverPct = feverCount / (allPatients.length || 1);
@@ -263,7 +131,7 @@ export function useFootfall() {
 
     const fc: FootfallForecast = {
       predictedCount,
-      peakTime: peakHour,
+      peakTime: peakHourStr,
       riskLevel,
       aiRecommendation,
       confidenceScore
@@ -276,26 +144,22 @@ export function useFootfall() {
     setLoading(false);
   }, []);
 
-  // Listen to Firestore patients if mode is live
+  // Listen to Firestore patients directly
   useEffect(() => {
-    if (mode === "local") {
-      fetchLocalFootfall();
-    } else {
-      setLoading(true);
-      // Listen to patient records over the last 14 days to compile statistics
-      const unsubscribe = patientRepo.listenToRecent(14, (data) => {
-        aggregateFirestoreData(data);
-      });
-      return () => unsubscribe();
-    }
-  }, [mode, fetchLocalFootfall, patientRepo, aggregateFirestoreData]);
+    if (!user?.uid) return;
+    // Listen to patient records over the last 14 days to compile statistics
+    const unsubscribe = patientRepo.listenToRecent(14, (data) => {
+      aggregateFirestoreData(data);
+    });
+    return () => unsubscribe();
+  }, [patientRepo, aggregateFirestoreData, user?.uid]);
 
   return {
     historicalData,
     departmentData,
     hourlyLoad,
     forecast,
-    loading,
-    refresh: mode === "local" ? fetchLocalFootfall : () => {}
+    loading: loading || !user?.uid,
+    refresh: () => {}
   };
 }

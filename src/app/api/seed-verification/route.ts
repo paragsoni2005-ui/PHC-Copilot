@@ -85,7 +85,7 @@ export async function GET() {
 
         // Determine registration time
         let hour = 9 + Math.floor(Math.random() * 8); // default 9 AM to 5 PM
-        let minute = Math.floor(Math.random() * 60);
+        const minute = Math.floor(Math.random() * 60);
 
         if (hourlyDistribution) {
           // Find the hour for this index based on distribution

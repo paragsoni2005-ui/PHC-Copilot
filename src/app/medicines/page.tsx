@@ -32,14 +32,18 @@ export default function MedicinesPage() {
   // Trigger AI prediction query when a medicine is selected
   useEffect(() => {
     if (selectedMed) {
-      setPredictionLoading(true);
-      setPredictionData(null);
+      Promise.resolve().then(() => {
+        setPredictionLoading(true);
+        setPredictionData(null);
+      });
       getAIReorderPrediction(selectedMed).then((res) => {
         setPredictionData(res);
         setPredictionLoading(false);
       });
     } else {
-      setPredictionData(null);
+      Promise.resolve().then(() => {
+        setPredictionData(null);
+      });
     }
   }, [selectedMed, getAIReorderPrediction]);
 

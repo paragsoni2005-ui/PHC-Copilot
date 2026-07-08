@@ -1,38 +1,37 @@
-import { useState, useEffect, useCallback } from 'react';
-import { LocalChecklistRepository } from '../repositories/LocalChecklistRepository';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { FirestoreChecklistRepository } from '../repositories/FirestoreChecklistRepository';
-import { LocalSettingsRepository } from '../repositories/LocalSettingsRepository';
-import { IChecklistRepository, ChecklistItem } from '../repositories/IChecklistRepository';
+import { ChecklistItem } from '../repositories/IChecklistRepository';
+import { useAuth } from '@/context/AuthContext';
 
-export function useChecklist() {
+function getTodayString(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+export function useChecklist(dateStr?: string) {
+  const { user } = useAuth();
   const [items, setItems] = useState<ChecklistItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [repo, setRepo] = useState<IChecklistRepository | null>(null);
+  const [source, setSource] = useState<'gemini' | 'rule-engine' | null>(null);
 
-  // Initialize repository based on active configurations
-  useEffect(() => {
-    const initRepo = async () => {
-      const settingsRepo = new LocalSettingsRepository();
-      const settings = await settingsRepo.getSettings();
-      if (settings.mode === 'live') {
-        setRepo(new FirestoreChecklistRepository());
-      } else {
-        setRepo(new LocalChecklistRepository());
-      }
-    };
-    initRepo();
-  }, []);
+  const targetDate = dateStr || getTodayString();
+
+  const repo = useMemo(() => user?.uid ? new FirestoreChecklistRepository(user.uid) : null, [user]);
 
   // Subscribe to real-time updates
   useEffect(() => {
-    if (!repo) return;
-    setLoading(true);
+    if (!repo || !user?.uid) return;
     const unsubscribe = repo.listen((data) => {
       setItems(data);
+      const detectedSource = data.length > 0 ? data[0].generatedBy : null;
+      setSource(detectedSource);
       setLoading(false);
-    });
+    }, targetDate);
     return () => unsubscribe();
-  }, [repo]);
+  }, [repo, targetDate, user?.uid]);
 
   const toggleItem = useCallback(async (id: string) => {
     if (!repo) throw new Error('Repository not initialized');
@@ -46,27 +45,47 @@ export function useChecklist() {
     );
     
     try {
-      await repo.toggleItem(id, completed);
+      await repo.toggleItem(id, completed, targetDate);
     } catch (e) {
       console.error(e);
-      // Rollback on failure (only needed for offline local storage mode or direct writes that failed)
-      if (repo instanceof LocalChecklistRepository) {
-        setItems((prev) =>
-          prev.map((t) => (t.id === id ? { ...t, completed: !completed } : t))
-        );
-      }
     }
-  }, [items, repo]);
+  }, [items, repo, targetDate]);
+
+  const generateChecklist = useCallback(async () => {
+    if (!user?.uid) return;
+    setLoading(true);
+    try {
+      const { ChecklistGenerationService } = await import('../services/ChecklistGenerationService');
+      const result = await ChecklistGenerationService.generateDailyChecklist(targetDate, user.uid);
+      setItems(result.tasks);
+      setSource(result.source);
+    } catch (e) {
+      console.error("Failed to generate checklist:", e);
+    } finally {
+      setLoading(false);
+    }
+  }, [targetDate, user]);
+
+  // Trigger automatic generation on mount if the checklist is completely empty
+  useEffect(() => {
+    if (!loading && items.length === 0 && user?.uid) {
+      Promise.resolve().then(() => generateChecklist());
+    }
+  }, [loading, items.length, generateChecklist, user?.uid]);
 
   return {
     items,
-    loading,
+    loading: loading || !user?.uid,
+    source,
     toggleItem,
+    generateChecklist,
     refresh: () => {
       if (repo) {
         setLoading(true);
-        repo.getItems().then((data) => {
+        repo.getItems(targetDate).then((data) => {
           setItems(data);
+          const detectedSource = data.length > 0 ? data[0].generatedBy : null;
+          setSource(detectedSource);
           setLoading(false);
         });
       }

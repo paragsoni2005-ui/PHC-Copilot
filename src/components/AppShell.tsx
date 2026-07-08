@@ -220,9 +220,15 @@ export default function AppShell({ children }: AppShellProps) {
         }
 
         .nav-item-active {
-          background-color: var(--color-primary);
+          background-color: var(--color-primary) !important;
           color: var(--color-on-primary) !important;
           box-shadow: 0 4px 10px rgba(9, 20, 38, 0.1);
+        }
+
+        .nav-item-active:hover {
+          background-color: var(--color-primary-container) !important;
+          color: var(--color-on-primary) !important;
+          opacity: 0.95;
         }
 
         .btn-signout {

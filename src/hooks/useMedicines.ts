@@ -1,35 +1,20 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Medicine } from '@/types/store';
-import { LocalMedicineRepository } from '../repositories/LocalMedicineRepository';
 import { FirestoreMedicineRepository } from '../repositories/FirestoreMedicineRepository';
-import { LocalSettingsRepository } from '../repositories/LocalSettingsRepository';
-import { IMedicineRepository } from '../repositories/IMedicineRepository';
+import { useAuth } from '@/context/AuthContext';
 
 export function useMedicines() {
+  const { user } = useAuth();
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all'); // all, critical, warning, safe
-  const [repo, setRepo] = useState<IMedicineRepository | null>(null);
 
-  // Initialize correct repository based on API configuration mode
-  useEffect(() => {
-    const initRepo = async () => {
-      const settingsRepo = new LocalSettingsRepository();
-      const settings = await settingsRepo.getSettings();
-      if (settings.mode === 'live') {
-        setRepo(new FirestoreMedicineRepository());
-      } else {
-        setRepo(new LocalMedicineRepository());
-      }
-    };
-    initRepo();
-  }, []);
+  const repo = useMemo(() => user?.uid ? new FirestoreMedicineRepository(user.uid) : null, [user]);
 
-  // Listen to Firestore or Local updates in real-time
+  // Listen to Firestore updates in real-time
   useEffect(() => {
     if (!repo) return;
-    setLoading(true);
     const unsubscribe = repo.listen((data) => {
       setMedicines(data);
       setLoading(false);
@@ -40,18 +25,12 @@ export function useMedicines() {
   const addMedicine = useCallback(async (medicine: Omit<Medicine, 'id' | 'daysRemaining' | 'riskLevel'>) => {
     if (!repo) throw new Error('Repository not initialized');
     const newMed = await repo.create(medicine);
-    if (repo instanceof LocalMedicineRepository) {
-      setMedicines((prev) => [...prev, newMed]);
-    }
     return newMed;
   }, [repo]);
 
   const updateStock = useCallback(async (id: string, newStock: number) => {
     if (!repo) throw new Error('Repository not initialized');
     const updated = await repo.update(id, { stock: newStock });
-    if (repo instanceof LocalMedicineRepository) {
-      setMedicines((prev) => prev.map((m) => (m.id === id ? updated : m)));
-    }
     return updated;
   }, [repo]);
 
@@ -78,36 +57,31 @@ export function useMedicines() {
   const getAIReorderPrediction = useCallback(async (medicine: Medicine) => {
     try {
       const { LocalFootfallRepository } = await import('../repositories/LocalFootfallRepository');
-      const settingsRepo = new LocalSettingsRepository();
       const footfallRepo = new LocalFootfallRepository();
-      const settings = await settingsRepo.getSettings();
-
-      if (settings.mode === 'live') {
-        const footfallHistory = await footfallRepo.getHistoricalRecords();
-        const response = await fetch('/api/copilot', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-gemini-api-key': settings.apiKey,
+      const footfallHistory = await footfallRepo.getHistoricalRecords();
+      
+      const response = await fetch('/api/copilot', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'reorder',
+          payload: {
+            medicine,
+            footfallHistory,
           },
-          body: JSON.stringify({
-            action: 'reorder',
-            payload: {
-              medicine,
-              footfallHistory,
-            },
-          }),
-        });
+        }),
+      });
 
-        const data = await response.json();
-        if (data.success && data.data) {
-          return {
-            recommendedOrderQuantity: data.data.recommendedOrderQuantity,
-            urgency: data.data.urgency,
-            reasoning: data.data.reasoning,
-            fallback: false,
-          };
-        }
+      const data = await response.json();
+      if (data.success && data.data) {
+        return {
+          recommendedOrderQuantity: data.data.recommendedOrderQuantity,
+          urgency: data.data.urgency,
+          reasoning: data.data.reasoning,
+          fallback: false,
+        };
       }
     } catch (e) {
       console.error('Error fetching AI reorder prediction:', e);
@@ -126,7 +100,7 @@ export function useMedicines() {
   return {
     medicines: filteredMedicines,
     rawMedicines: medicines,
-    loading,
+    loading: loading || !user?.uid,
     searchQuery,
     setSearchQuery,
     filterStatus,

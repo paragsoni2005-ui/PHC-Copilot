@@ -1,4 +1,4 @@
-import { FootfallRecord, HourlyLoad } from "@/types/store";
+import { HourlyLoad } from "@/types/store";
 
 // Historical 7-day total OPD patient counts (FOOT-01 Line Chart)
 export const mockFootfallHistory: { date: string; patients: number }[] = [

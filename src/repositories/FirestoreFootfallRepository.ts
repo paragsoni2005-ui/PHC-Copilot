@@ -5,9 +5,11 @@ import { FirestoreSeeder } from '../services/FirestoreSeeder';
 import { getDoc, doc } from 'firebase/firestore';
 
 export class FirestoreFootfallRepository implements IFootfallRepository {
+  constructor(private userId: string) {}
+
   private async getDataDoc(): Promise<any> {
-    await FirestoreSeeder.seedIfEmpty(db);
-    const docSnap = await getDoc(doc(db, 'footfall', 'data'));
+    await FirestoreSeeder.seedIfEmpty(db, this.userId);
+    const docSnap = await getDoc(doc(db, 'users', this.userId, 'footfall', 'data'));
     if (!docSnap.exists()) {
       throw new Error('Footfall document not found');
     }

@@ -24,7 +24,7 @@ export default function BriefingPage() {
   const parseBriefing = (text: string | null) => {
     if (!text) return { intro: "", inventory: "", roster: "", surge: "" };
     const lines = text.split("\n\n");
-    let intro = lines[0] || "";
+    const intro = lines[0] || "";
     let inventory = "";
     let roster = "";
     let surge = "";
@@ -114,7 +114,7 @@ export default function BriefingPage() {
               <div className="card-header">
                 <div className="header-title-box">
                   <Sparkles size={20} className="text-clinical-teal" />
-                  <h2 className="section-title">Today's Synthesis & Action Plan</h2>
+                  <h2 className="section-title">Today&apos;s Synthesis & Action Plan</h2>
                 </div>
                 <div className="action-button-row">
                   <button className="btn-icon-action" onClick={handleCopy} title="Copy Summary">

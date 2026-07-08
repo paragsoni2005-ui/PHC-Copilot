@@ -3,7 +3,6 @@ import {
   doc, 
   getDoc, 
   setDoc, 
-  collection, 
   writeBatch, 
   serverTimestamp,
   Timestamp 
@@ -16,13 +15,6 @@ import {
   mockHourlyLoad, 
   mockFootfallForecast 
 } from "../mocks/footfall";
-
-const seedChecklist = [
-  { id: "1", text: "Verify morning medicine stock registers", completed: true, priority: "medium", category: "General" },
-  { id: "2", text: "Reallocate staff for predicted Pediatric footfall surge", completed: false, priority: "high", category: "Staffing" },
-  { id: "3", text: "Review Doctor attendance and confirm leave schedules", completed: false, priority: "high", category: "Attendance" },
-  { id: "4", text: "Approve ORS urgent restock order", completed: false, priority: "high", category: "Inventory" },
-];
 
 const defaultBriefingText = 
   "Good Morning, Doctor. Here is your synthesized operations briefing for Sunday, July 5, 2026.\n\n" +
@@ -70,7 +62,6 @@ function generateHistoricalPatients(): any[] {
 
   // Generate patients for each of the last 7 days
   for (let d = 0; d < 8; d++) {
-    // Determine date
     const date = new Date();
     date.setDate(date.getDate() - d);
     
@@ -78,21 +69,17 @@ function generateHistoricalPatients(): any[] {
     const patientCount = 8 + Math.floor(Math.random() * 5);
 
     for (let p = 0; p < patientCount; p++) {
-      // Pick random department
       const dept = departments[Math.floor(Math.random() * departments.length)];
       
-      // Determine gender based on department
       let gender = Math.random() > 0.5 ? "Male" : "Female";
       if (dept === "ANC") {
         gender = "Female";
       }
 
-      // Pick name
       const name = gender === "Male" 
         ? maleNames[Math.floor(Math.random() * maleNames.length)] + " " + ["Kumar", "Singh", "Sharma", "Yadav"][Math.floor(Math.random() * 4)]
         : femaleNames[Math.floor(Math.random() * femaleNames.length)] + " " + ["Devi", "Kumari", "Sharma", "Yadav"][Math.floor(Math.random() * 4)];
 
-      // Pick age based on department
       let age = 15 + Math.floor(Math.random() * 60);
       if (dept === "Pediatrics" || dept === "Immunization") {
         age = 1 + Math.floor(Math.random() * 12);
@@ -105,7 +92,6 @@ function generateHistoricalPatients(): any[] {
       const symptoms = symptomsList[Math.floor(Math.random() * symptomsList.length)];
       const visitType = Math.random() > 0.75 ? "follow-up" : "new";
 
-      // Pick time between 9:00 AM and 4:00 PM
       const hour = 9 + Math.floor(Math.random() * 8);
       const minute = Math.floor(Math.random() * 60);
       const regDate = new Date(date);
@@ -134,9 +120,9 @@ function generateHistoricalPatients(): any[] {
 }
 
 export class FirestoreSeeder {
-  static async seedIfEmpty(db: Firestore): Promise<void> {
+  static async seedIfEmpty(db: Firestore, userId: string): Promise<void> {
     try {
-      const metaRef = doc(db, "system", "metadata");
+      const metaRef = doc(db, "users", userId, "system", "metadata");
       const metaSnap = await getDoc(metaRef);
 
       if (metaSnap.exists()) {
@@ -144,7 +130,7 @@ export class FirestoreSeeder {
         return;
       }
 
-      console.log("Firestore is empty. Starting database seeding...");
+      console.log(`Sandbox ${userId} is empty. Starting database seeding...`);
 
       // Write metadata document first to guard against other clients seeding concurrently
       await setDoc(metaRef, { 
@@ -155,7 +141,7 @@ export class FirestoreSeeder {
       // Seeding Medicines
       const medBatch = writeBatch(db);
       mockMedicines.forEach((med) => {
-        const medRef = doc(db, "medicines", med.id);
+        const medRef = doc(db, "users", userId, "medicines", med.id);
         medBatch.set(medRef, med);
       });
       await medBatch.commit();
@@ -163,25 +149,17 @@ export class FirestoreSeeder {
       // Seeding Doctors
       const docBatch = writeBatch(db);
       mockDoctors.forEach((doctor) => {
-        const docRef = doc(db, "doctors", doctor.id);
+        const docRef = doc(db, "users", userId, "doctors", doctor.id);
         docBatch.set(docRef, doctor);
       });
       await docBatch.commit();
 
-      // Seeding Checklist
-      const checklistBatch = writeBatch(db);
-      seedChecklist.forEach((item) => {
-        const itemRef = doc(db, "checklist", item.id);
-        checklistBatch.set(itemRef, item);
-      });
-      await checklistBatch.commit();
-
       // Seeding Briefing
-      const briefingRef = doc(db, "briefing", "latest");
+      const briefingRef = doc(db, "users", userId, "briefing", "latest");
       await setDoc(briefingRef, { text: defaultBriefingText, updatedAt: serverTimestamp() });
 
-      // Seeding Footfall Data (remains as backup/fallback)
-      const footfallRef = doc(db, "footfall", "data");
+      // Seeding Footfall Data
+      const footfallRef = doc(db, "users", userId, "footfall", "data");
       await setDoc(footfallRef, {
         history: mockFootfallHistory,
         departments: mockDepartmentBreakdown,
@@ -192,21 +170,20 @@ export class FirestoreSeeder {
 
       // Seeding patients historical records
       const patients = generateHistoricalPatients();
-      // Write in batches of 40 to avoid Firestore batch limits (max 500)
       const batchSize = 40;
       for (let i = 0; i < patients.length; i += batchSize) {
         const batch = writeBatch(db);
         const chunk = patients.slice(i, i + batchSize);
         chunk.forEach((pat) => {
-          const patRef = doc(db, "patients", pat.patientId);
+          const patRef = doc(db, "users", userId, "patients", pat.patientId);
           batch.set(patRef, pat);
         });
         await batch.commit();
       }
 
-      console.log(`Firestore database successfully seeded with ${patients.length} patient records and defaults.`);
+      console.log(`Firestore sandbox database ${userId} successfully seeded with ${patients.length} patient records and defaults.`);
     } catch (error) {
-      console.error("Error during Firestore database seeding:", error);
+      console.error(`Error during Firestore database seeding for sandbox ${userId}:`, error);
     }
   }
 }

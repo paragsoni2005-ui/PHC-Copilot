@@ -17,17 +17,25 @@ import {
   Info,
   Calendar,
   Layers,
-  Activity
+  Activity,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 
 export default function DashboardPage() {
   const router = useRouter();
   
+  // Expandable task reasoning state
+  const [expandedTasks, setExpandedTasks] = React.useState<Record<string, boolean>>({});
+  const toggleExpand = (id: string) => {
+    setExpandedTasks(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
   // Wire up state management hooks
   const { stats: medStats, rawMedicines, loading: medLoading } = useMedicines();
   const { stats: docStats, loading: docLoading } = useDoctors();
   const { forecast, loading: footLoading } = useFootfall();
-  const { items: tasks, toggleItem, loading: checkLoading } = useChecklist();
+  const { items: tasks, toggleItem, loading: checkLoading, source: checklistSource } = useChecklist();
 
   const handleGenerateBriefing = () => {
     router.push("/briefing");
@@ -202,26 +210,103 @@ export default function DashboardPage() {
 
           {/* Action Checklist Panel */}
           <div className="panel-card glass-container">
-            <div className="panel-header">
-              <h3 className="panel-title">Daily Action Checklist</h3>
-              <span className="text-caption">
-                {checkLoading ? "..." : `${checklistDoneCount} of ${tasks.length} done`}
-              </span>
+            <div className="panel-header" style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: '8px', borderBottom: 'none', marginBottom: '8px', paddingBottom: '0' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3 className="panel-title">Daily Action Checklist</h3>
+                <span className={`source-badge ${checklistSource === 'gemini' ? 'source-ai' : 'source-local'}`}>
+                  {checklistSource === 'gemini' ? '✓ Gemini AI' : '✓ Local Decision Engine'}
+                </span>
+              </div>
+              <div style={{ display: 'flex', gap: '12px', fontSize: '0.8rem', color: 'var(--color-outline)' }}>
+                <span><strong>{tasks.length}</strong> Tasks</span>
+                <span>•</span>
+                <span><strong>{tasks.filter(t => t.priority === 'high').length}</strong> High Priority</span>
+                <span>•</span>
+                <span><strong>{checklistDoneCount}</strong> Completed</span>
+                {forecast?.confidenceScore && (
+                  <>
+                    <span>•</span>
+                    <span>Confidence: <strong>{forecast.confidenceScore}%</strong></span>
+                  </>
+                )}
+              </div>
             </div>
-            <div className="panel-body">
+            
+            <div className="panel-body" style={{ marginTop: '8px' }}>
               <div className="checklist-list">
-                {tasks.map((task) => (
-                  <div
-                    key={task.id}
-                    className={`checklist-item ${task.completed ? "checklist-item-done" : ""}`}
-                    onClick={() => toggleItem(task.id)}
-                  >
-                    <div className="checkbox-box flex-center">
-                      {task.completed && <CheckSquare size={16} className="checkbox-icon" />}
-                    </div>
-                    <span className="checklist-text">{task.text}</span>
-                  </div>
-                ))}
+                {checkLoading ? (
+                  <div style={{ textAlign: 'center', padding: '24px', color: 'var(--color-outline)' }}>Loading checklist...</div>
+                ) : tasks.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '24px', color: 'var(--color-outline)' }}>No checklist tasks generated today.</div>
+                ) : (
+                  tasks.map((task) => {
+                    const isExpanded = !!expandedTasks[task.id];
+                    const categoryIcon = (() => {
+                      switch (task.category) {
+                        case 'Patient Flow': return <Users size={14} />;
+                        case 'Inventory': return <Layers size={14} />;
+                        case 'Staffing': return <Users size={14} />;
+                        case 'Administration': return <Calendar size={14} />;
+                        case 'Clinical Operations': return <Activity size={14} />;
+                        case 'Public Health': return <Sparkles size={14} />;
+                        default: return <CheckSquare size={14} />;
+                      }
+                    })();
+
+                    return (
+                      <div
+                        key={task.id}
+                        className={`checklist-item ${task.completed ? "checklist-item-done" : ""}`}
+                        style={{ display: 'flex', flexDirection: 'column', gap: '4px', cursor: 'pointer', padding: '10px 12px' }}
+                        onClick={() => toggleExpand(task.id)}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1 }}>
+                            <div 
+                              className="checkbox-box flex-center" 
+                              style={{ flexShrink: 0 }}
+                              onClick={(e) => { e.stopPropagation(); toggleItem(task.id); }}
+                            >
+                              {task.completed && <CheckSquare size={16} className="checkbox-icon" />}
+                            </div>
+                            
+                            <div className="category-icon-box flex-center">
+                              {categoryIcon}
+                            </div>
+
+                            <span className="checklist-text" style={{ flex: 1 }}>{task.title}</span>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                            <span className={`priority-badge pri-${task.priority}`}>
+                              {task.priority}
+                            </span>
+                            {isExpanded ? <ChevronUp size={16} style={{ color: 'var(--color-outline)' }} /> : <ChevronDown size={16} style={{ color: 'var(--color-outline)' }} />}
+                          </div>
+                        </div>
+
+                        {task.description && !isExpanded && (
+                          <p style={{ margin: '0 0 0 68px', fontSize: '0.78rem', color: 'var(--color-on-surface-variant)', opacity: 0.85 }}>
+                            {task.description}
+                          </p>
+                        )}
+
+                        {isExpanded && (
+                          <div className="checklist-why-container animate-fade-in" style={{ pointerEvents: 'none' }}>
+                            <p className="why-description" style={{ margin: '0 0 4px 0' }}><strong>Description:</strong> {task.description}</p>
+                            <p className="why-reason" style={{ margin: '0 0 4px 0' }}><strong>Why?</strong> {task.reason}</p>
+                            <p className="why-impact" style={{ margin: '0' }}><strong>Estimated Impact:</strong> {task.estimatedImpact}</p>
+                            {task.completedAt && (
+                              <p style={{ margin: '6px 0 0 0', fontSize: '0.7rem', color: 'var(--color-status-success)', fontWeight: 600 }}>
+                                ✓ Completed at {new Date(task.completedAt).toLocaleTimeString()}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
               </div>
             </div>
           </div>
@@ -503,28 +588,28 @@ export default function DashboardPage() {
         .checklist-list {
           display: flex;
           flex-direction: column;
-          gap: var(--spacing-space-2);
+          gap: var(--spacing-space-3);
         }
 
         .checklist-item {
           display: flex;
-          align-items: center;
-          gap: var(--spacing-space-3);
-          padding: var(--spacing-space-2) var(--spacing-space-3);
           border-radius: var(--rounded-default);
-          cursor: pointer;
-          transition: background-color 0.2s ease;
+          background-color: var(--color-surface-container-lowest);
+          border: 1px solid var(--color-border-subtle);
+          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .checklist-item:hover {
           background-color: var(--color-surface-container-low);
+          border-color: rgba(13, 148, 136, 0.2);
+          transform: translateY(-1px);
         }
 
         .checkbox-box {
           width: 20px;
           height: 20px;
           border: 2px solid var(--color-outline-variant);
-          border-radius: 4px;
+          border-radius: 6px;
           transition: all 0.2s ease;
           background: #ffffff;
         }
@@ -539,15 +624,83 @@ export default function DashboardPage() {
           color: #ffffff;
         }
 
+        .category-icon-box {
+          width: 28px;
+          height: 28px;
+          border-radius: var(--rounded-default);
+          background: rgba(13, 148, 136, 0.06);
+          color: var(--color-clinical-teal);
+          flex-shrink: 0;
+        }
+
         .checklist-text {
-          font-size: 0.875rem;
+          font-size: 0.9rem;
           color: var(--color-on-surface);
-          font-weight: 500;
+          font-weight: 600;
+          letter-spacing: -0.01em;
         }
 
         .checklist-item-done .checklist-text {
           text-decoration: line-through;
           color: var(--color-outline);
+        }
+
+        /* Badges */
+        .source-badge {
+          font-size: 0.72rem;
+          font-weight: 600;
+          padding: 3px 10px;
+          border-radius: 9999px;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+        .source-ai {
+          background: rgba(13, 148, 136, 0.1);
+          color: var(--color-clinical-teal);
+        }
+        .source-local {
+          background: rgba(100, 116, 139, 0.1);
+          color: rgb(71, 85, 105);
+        }
+
+        .priority-badge {
+          font-size: 0.7rem;
+          font-weight: 700;
+          padding: 2px 8px;
+          border-radius: 6px;
+          text-transform: uppercase;
+          letter-spacing: 0.03em;
+        }
+        .pri-high {
+          background: rgba(239, 68, 68, 0.1);
+          color: rgb(239, 68, 68);
+        }
+        .pri-medium {
+          background: rgba(245, 158, 11, 0.1);
+          color: rgb(245, 158, 11);
+        }
+        .pri-low {
+          background: rgba(100, 116, 139, 0.1);
+          color: rgb(100, 116, 139);
+        }
+
+        /* Why Reasoning Container */
+        .checklist-why-container {
+          margin-left: 38px;
+          margin-top: 6px;
+          padding: var(--spacing-space-3);
+          background: rgba(13, 148, 136, 0.04);
+          border-radius: var(--rounded-default);
+          border-left: 3px solid var(--color-clinical-teal);
+          font-size: 0.8rem;
+          color: var(--color-on-surface-variant);
+          line-height: 1.5;
+        }
+        .why-description, .why-reason, .why-impact {
+          margin: 0 0 4px 0;
+        }
+        .why-description strong, .why-reason strong, .why-impact strong {
+          color: var(--color-primary);
         }
 
         /* Responsive */

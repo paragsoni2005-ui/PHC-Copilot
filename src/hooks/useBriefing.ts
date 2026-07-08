@@ -1,14 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
-import { LocalBriefingRepository } from '../repositories/LocalBriefingRepository';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { FirestoreBriefingRepository } from '../repositories/FirestoreBriefingRepository';
-import { LocalMedicineRepository } from '../repositories/LocalMedicineRepository';
 import { FirestoreMedicineRepository } from '../repositories/FirestoreMedicineRepository';
-import { LocalDoctorRepository } from '../repositories/LocalDoctorRepository';
 import { FirestoreDoctorRepository } from '../repositories/FirestoreDoctorRepository';
-import { LocalFootfallRepository } from '../repositories/LocalFootfallRepository';
 import { FirestoreFootfallRepository } from '../repositories/FirestoreFootfallRepository';
-import { LocalSettingsRepository } from '../repositories/LocalSettingsRepository';
-import { IBriefingRepository } from '../repositories/IBriefingRepository';
+import { useAuth } from '@/context/AuthContext';
 
 const defaultReasoning = {
   inventory: "ORS consumption models are based on the past 14 days of summer diarrheal logs. Stock reorder levels were breached on July 3.",
@@ -28,6 +23,7 @@ interface BriefingData {
 }
 
 export function useBriefing() {
+  const { user } = useAuth();
   const [briefing, setBriefing] = useState<string | null>(null);
   const [confidence, setConfidence] = useState<number>(94);
   const [reasoning, setReasoning] = useState(defaultReasoning);
@@ -35,30 +31,10 @@ export function useBriefing() {
   const [loading, setLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const [repo, setRepo] = useState<IBriefingRepository | null>(null);
-  const [medRepo, setMedRepo] = useState<any>(null);
-  const [docRepo, setDocRepo] = useState<any>(null);
-  const [footRepo, setFootRepo] = useState<any>(null);
-
-  // Initialize repositories based on settings
-  useEffect(() => {
-    const initRepos = async () => {
-      const settingsRepo = new LocalSettingsRepository();
-      const settings = await settingsRepo.getSettings();
-      if (settings.mode === 'live') {
-        setRepo(new FirestoreBriefingRepository());
-        setMedRepo(new FirestoreMedicineRepository());
-        setDocRepo(new FirestoreDoctorRepository());
-        setFootRepo(new FirestoreFootfallRepository());
-      } else {
-        setRepo(new LocalBriefingRepository());
-        setMedRepo(new LocalMedicineRepository());
-        setDocRepo(new LocalDoctorRepository());
-        setFootRepo(new LocalFootfallRepository());
-      }
-    };
-    initRepos();
-  }, []);
+  const repo = useMemo(() => user?.uid ? new FirestoreBriefingRepository(user.uid) : null, [user]);
+  const medRepo = useMemo(() => user?.uid ? new FirestoreMedicineRepository(user.uid) : null, [user]);
+  const docRepo = useMemo(() => user?.uid ? new FirestoreDoctorRepository(user.uid) : null, [user]);
+  const footRepo = useMemo(() => user?.uid ? new FirestoreFootfallRepository(user.uid) : null, [user]);
 
   const parseAndSetData = useCallback((rawData: string | null) => {
     if (!rawData) {
@@ -90,102 +66,119 @@ export function useBriefing() {
 
   // Listen for real-time briefing updates
   useEffect(() => {
-    if (!repo) return;
-    setLoading(true);
+    if (!repo || !user?.uid) return;
     const unsubscribe = repo.listen((data) => {
       parseAndSetData(data);
       setLoading(false);
     });
     return () => unsubscribe();
-  }, [repo, parseAndSetData]);
+  }, [repo, parseAndSetData, user?.uid]);
 
   const generateBriefing = useCallback(async () => {
-    if (!repo || !medRepo || !docRepo || !footRepo) return;
+    if (!repo || !medRepo || !docRepo || !footRepo || !user?.uid) return;
     setLoading(true);
     setIsGenerating(true);
-    const settingsRepo = new LocalSettingsRepository();
     try {
-      const settings = await settingsRepo.getSettings();
+      // Gather current states from Firestore
+      const medicines = await medRepo.getAll();
+      const doctors = await docRepo.getAll();
+      const forecast = await footRepo.getForecast();
+      const hourlyLoad = await footRepo.getHourlyLoad();
 
-      if (settings.mode === 'live') {
-        // Gather current states from Firestore
-        const medicines = await medRepo.getAll();
-        const doctors = await docRepo.getAll();
-        const forecast = await footRepo.getForecast();
-        const hourlyLoad = await footRepo.getHourlyLoad();
-
-        const response = await fetch('/api/copilot', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-gemini-api-key': settings.apiKey,
+      const response = await fetch('/api/copilot', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'briefing',
+          payload: {
+            medicines,
+            doctors,
+            footfall: { forecast, hourlyLoad },
           },
-          body: JSON.stringify({
-            action: 'briefing',
-            payload: {
-              medicines,
-              doctors,
-              footfall: { forecast, hourlyLoad },
-            },
-          }),
-        });
+        }),
+      });
 
-        const data = await response.json();
-        if (data.success && data.data) {
-          const rawBriefing = data.data;
-          const formattedText = 
-            `${rawBriefing.intro}\n\n` +
-            `📦 Inventory & Supply Chains\n${rawBriefing.inventorySummary}\n\n` +
-            `👥 Roster & Department Cover\n${rawBriefing.rosterSummary}\n\n` +
-            `📈 Patient Analytics & Surge Risk\n${rawBriefing.surgeSummary}`;
+      const data = await response.json();
+      if (data.success && data.data) {
+        const combined = data.data;
+        const rawBriefing = combined.briefing;
+        const rawChecklist = combined.checklist;
+        
+        const formattedText = 
+          `${rawBriefing.intro}\n\n` +
+          `📦 Inventory & Supply Chains\n${rawBriefing.inventorySummary}\n\n` +
+          `👥 Roster & Department Cover\n${rawBriefing.rosterSummary}\n\n` +
+          `📈 Patient Analytics & Surge Risk\n${rawBriefing.surgeSummary}`;
 
-          const serializedData: BriefingData = {
-            text: formattedText,
-            confidence: rawBriefing.confidenceScore,
-            reasoning: {
-              inventory: rawBriefing.inventoryReasoning,
-              surge: rawBriefing.surgeReasoning,
-              roster: rawBriefing.rosterReasoning,
-            },
-            fallbackActive: false,
-          };
+        const serializedData: BriefingData = {
+          text: formattedText,
+          confidence: rawBriefing.confidenceScore,
+          reasoning: {
+            inventory: rawBriefing.inventoryReasoning,
+            surge: rawBriefing.surgeReasoning,
+            roster: rawBriefing.rosterReasoning,
+          },
+          fallbackActive: false,
+        };
 
-          const serializedString = JSON.stringify(serializedData);
-          await repo.saveBriefing(serializedString);
-          parseAndSetData(serializedString);
-          setIsGenerating(false);
-          setLoading(false);
-          return;
-        } else {
-          console.warn('Backend returned failure, falling back to simulator', data.error);
+        const serializedString = JSON.stringify(serializedData);
+        await repo.saveBriefing(serializedString);
+        parseAndSetData(serializedString);
+
+        // Merge and save checklist tasks from the combined response
+        try {
+          const { ChecklistGenerationService } = await import('../services/ChecklistGenerationService');
+          const todayStr = new Date().toISOString().split('T')[0];
+          if (rawChecklist && Array.isArray(rawChecklist.tasks)) {
+            await ChecklistGenerationService.mergeAndSaveTasks(rawChecklist.tasks, todayStr, 'gemini', user.uid);
+          } else {
+            await ChecklistGenerationService.generateDailyChecklist(todayStr, user.uid);
+          }
+        } catch (errChecklist) {
+          console.error("Failed to generate checklist alongside briefing:", errChecklist);
         }
+
+        setIsGenerating(false);
+        setLoading(false);
+        return;
+      } else {
+        console.warn('Backend returned failure, falling back to simulator', data.error);
       }
 
       // Simulator Fallback
       await new Promise((resolve) => setTimeout(resolve, 1000));
       const defaultData = await repo.getLatestBriefing();
-      const settingsLocal = await settingsRepo.getSettings();
 
       const serializedData: BriefingData = {
         text: defaultData || '',
         confidence: 94,
         reasoning: defaultReasoning,
-        fallbackActive: settingsLocal.mode === 'live',
+        fallbackActive: true,
       };
 
       const serializedString = JSON.stringify(serializedData);
       await repo.saveBriefing(serializedString);
       parseAndSetData(serializedString);
+
+      // Generate checklist dynamically alongside briefing
+      try {
+        const { ChecklistGenerationService } = await import('../services/ChecklistGenerationService');
+        const todayStr = new Date().toISOString().split('T')[0];
+        await ChecklistGenerationService.generateDailyChecklist(todayStr, user.uid);
+      } catch (errChecklist) {
+        console.error("Failed to generate checklist alongside briefing:", errChecklist);
+      }
     } catch (e) {
       console.error(e);
       // Fallback on network/fetch errors
       const defaultData = await repo.getLatestBriefing();
-      const settingsLocal = await settingsRepo.getSettings();
       const serializedData: BriefingData = {
         text: defaultData || '',
         confidence: 94,
         reasoning: defaultReasoning,
-        fallbackActive: settingsLocal.mode === 'live',
+        fallbackActive: true,
       };
       const serializedString = JSON.stringify(serializedData);
       parseAndSetData(serializedString);
@@ -193,14 +186,14 @@ export function useBriefing() {
       setIsGenerating(false);
       setLoading(false);
     }
-  }, [repo, medRepo, docRepo, footRepo, parseAndSetData]);
+  }, [repo, medRepo, docRepo, footRepo, parseAndSetData, user]);
 
   return {
     briefing,
     confidence,
     reasoning,
     fallbackActive,
-    loading,
+    loading: loading || !user?.uid,
     isGenerating,
     generateBriefing,
   };

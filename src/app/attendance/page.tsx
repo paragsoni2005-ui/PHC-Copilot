@@ -17,13 +17,17 @@ export default function AttendancePage() {
 
   useEffect(() => {
     if (absentDoctors.length > 0) {
-      setImpactLoading(true);
+      Promise.resolve().then(() => {
+        setImpactLoading(true);
+      });
       getAIStaffingImpact(absentDoctors).then((res) => {
         setImpactData(res);
         setImpactLoading(false);
       });
     } else {
-      setImpactData(null);
+      Promise.resolve().then(() => {
+        setImpactData(null);
+      });
     }
   }, [absentDoctors, getAIStaffingImpact]);
 

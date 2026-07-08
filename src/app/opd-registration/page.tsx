@@ -324,7 +324,7 @@ export default function OPDRegistrationPage() {
             {/* Patients List Card */}
             <div className="patients-list-card glass-container">
               <div className="card-header-bar flex-between">
-                <h3 className="panel-title">Today's Registered Patients</h3>
+                <h3 className="panel-title">Today&apos;s Registered Patients</h3>
                 <span className="badge-patients-count">{filteredPatients.length} Patients</span>
               </div>
 

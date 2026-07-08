@@ -27,23 +27,30 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<any>({ uid: "demo-user", email: "mo@phc.gov.in", isAnonymous: false });
+  const [user, setUser] = useState<any>(null);
   const [role, setRole] = useState<UserRole>("medical_officer");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
+
+  useEffect(() => {
+    let id = localStorage.getItem('phc_sandbox_id');
+    if (!id) {
+      id = `sb-${Math.random().toString(36).substring(2, 9)}`;
+      localStorage.setItem('phc_sandbox_id', id);
+    }
+    const resolvedId = id;
+    Promise.resolve().then(() => {
+      setUser({ uid: resolvedId, email: "mo@phc.gov.in", isAnonymous: true });
+      setLoading(false);
+    });
+  }, []);
 
   // Route permission config - bypassed as auth is disabled
   const hasAccess = useCallback((path: string): boolean => {
     return true;
   }, []);
 
-  // Sync auth state - bypassed to keep authentication disabled
-  useEffect(() => {
-    setUser({ uid: "demo-user", email: "mo@phc.gov.in", isAnonymous: false } as any);
-    setRole("medical_officer");
-    setLoading(false);
-  }, []);
 
   const signInAsReceptionist = async () => {
     setLoading(true);

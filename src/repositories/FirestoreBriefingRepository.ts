@@ -9,20 +9,22 @@ import {
 } from 'firebase/firestore';
 
 export class FirestoreBriefingRepository implements IBriefingRepository {
+  constructor(private userId: string) {}
+
   async getLatestBriefing(): Promise<string | null> {
-    await FirestoreSeeder.seedIfEmpty(db);
-    const docSnap = await getDoc(doc(db, 'briefing', 'latest'));
+    await FirestoreSeeder.seedIfEmpty(db, this.userId);
+    const docSnap = await getDoc(doc(db, 'users', this.userId, 'briefing', 'latest'));
     if (!docSnap.exists()) return null;
     return docSnap.data().text || null;
   }
 
   async saveBriefing(briefing: string): Promise<void> {
-    const briefingRef = doc(db, 'briefing', 'latest');
+    const briefingRef = doc(db, 'users', this.userId, 'briefing', 'latest');
     await setDoc(briefingRef, { text: briefing });
   }
 
   async clearBriefing(): Promise<void> {
-    const briefingRef = doc(db, 'briefing', 'latest');
+    const briefingRef = doc(db, 'users', this.userId, 'briefing', 'latest');
     await setDoc(briefingRef, { text: null });
   }
 
@@ -31,9 +33,9 @@ export class FirestoreBriefingRepository implements IBriefingRepository {
     let active = true;
 
     const setup = async () => {
-      await FirestoreSeeder.seedIfEmpty(db);
+      await FirestoreSeeder.seedIfEmpty(db, this.userId);
       if (!active) return;
-      unsub = onSnapshot(doc(db, 'briefing', 'latest'), (docSnap) => {
+      unsub = onSnapshot(doc(db, 'users', this.userId, 'briefing', 'latest'), (docSnap) => {
         if (docSnap.exists()) {
           callback(docSnap.data().text || null);
         } else {

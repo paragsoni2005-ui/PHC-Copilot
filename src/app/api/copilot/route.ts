@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
         const { medicines, doctors, footfall } = payload || {};
         
         // Fetch patient logs registered in the last 7 days from Firestore
-        let recentPatients: any[] = [];
+        const recentPatients: any[] = [];
         try {
           const cutoffDate = new Date();
           cutoffDate.setDate(cutoffDate.getDate() - 7);
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
           console.error("Failed to query patients in briefing API:", e);
         }
 
-        result = await GeminiService.generateBriefing(
+        result = await GeminiService.generateCombinedData(
           apiKey, 
           medicines || [], 
           doctors || [], 
@@ -88,6 +88,11 @@ export async function POST(request: NextRequest) {
       case 'attendance':
         const { absentDoctors } = payload || {};
         result = await GeminiService.generateStaffingImpact(apiKey, absentDoctors || []);
+        break;
+
+      case 'checklist':
+        const { context } = payload || {};
+        result = await GeminiService.generateDailyChecklist(apiKey, context || {});
         break;
 
       default:

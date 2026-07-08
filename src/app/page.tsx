@@ -238,7 +238,7 @@ export default function RootPage() {
                 <div className="bullet-icon flex-center"><Database size={16} /></div>
                 <div>
                   <h4>Zero-refresh live updates</h4>
-                  <p>Firestore triggers sync new entries instantly with the Medical Officer's view.</p>
+                  <p>Firestore triggers sync new entries instantly with the Medical Officer&apos;s view.</p>
                 </div>
               </div>
             </div>
