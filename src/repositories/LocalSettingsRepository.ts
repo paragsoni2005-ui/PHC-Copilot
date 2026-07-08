@@ -9,7 +9,7 @@ export class LocalSettingsRepository implements ISettingsRepository {
 
   async getSettings(): Promise<SystemSettings> {
     const defaultSettings: SystemSettings = {
-      mode: 'mock',
+      mode: 'live',
       apiKey: '',
     };
     if (!this.isClient()) return defaultSettings;
@@ -19,7 +19,11 @@ export class LocalSettingsRepository implements ISettingsRepository {
       return defaultSettings;
     }
     try {
-      return JSON.parse(data) as SystemSettings;
+      const parsed = JSON.parse(data) as SystemSettings;
+      return {
+        ...parsed,
+        mode: 'live'
+      };
     } catch {
       return defaultSettings;
     }
@@ -27,6 +31,6 @@ export class LocalSettingsRepository implements ISettingsRepository {
 
   async saveSettings(settings: SystemSettings): Promise<void> {
     if (!this.isClient()) return;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...settings, mode: 'live' }));
   }
 }

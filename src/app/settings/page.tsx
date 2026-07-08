@@ -3,46 +3,15 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import AppShell from "@/components/AppShell";
-import { useSettings } from "@/hooks/useSettings";
 import {
-  Save,
   RotateCcw,
-  Key,
   User,
-  Shield,
-  CheckCircle2,
-  RefreshCw,
-  AlertTriangle
+  Shield
 } from "lucide-react";
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { settings, loading, testingConnection, testResult, updateSettings, testConnection, clearTestResult } = useSettings();
-  const [apiKey, setApiKey] = useState("");
-  const [mode, setMode] = useState<'mock' | 'live'>("mock");
-  const [savedSuccess, setSavedSuccess] = useState(false);
   const [isDemoReset, setIsDemoReset] = useState(false);
-
-  // Sync state when hook loaded
-  useEffect(() => {
-    if (!loading) {
-      setApiKey(settings.apiKey);
-      setMode(settings.mode);
-    }
-  }, [settings, loading]);
-
-  const handleSaveSettings = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await updateSettings({ mode, apiKey });
-    setSavedSuccess(true);
-    setTimeout(() => {
-      setSavedSuccess(false);
-    }, 3000);
-  };
-
-  const handleTestConnection = async () => {
-    await testConnection(apiKey);
-  };
 
   const handleResetDemo = () => {
     localStorage.removeItem("phc_first_visit_complete");
@@ -81,92 +50,6 @@ export default function SettingsPage() {
               <p className="field-value">PHC Central District (Level 2)</p>
             </div>
           </div>
-        </section>
-
-        {/* API Key Configuration Form */}
-        <section className="settings-card glass-container">
-          <div className="card-header">
-            <Key size={18} className="header-icon" />
-            <h3>API Configuration</h3>
-          </div>
-          <form onSubmit={handleSaveSettings} className="settings-form">
-            <div className="form-group">
-              <label htmlFor="api-mode">Intelligence Provider Mode</label>
-              <p className="form-help-text">
-                Select between fully simulated offline mock briefings or connecting to Google Cloud Gemini API for real-time live synthesis.
-              </p>
-              <select
-                id="api-mode"
-                value={mode}
-                onChange={(e) => {
-                  setMode(e.target.value as 'mock' | 'live');
-                  clearTestResult();
-                }}
-                className="settings-input"
-                style={{ padding: '8px 12px' }}
-              >
-                <option value="mock">Local Simulator (Offline Mode)</option>
-                <option value="live">Google Gemini Live (API Mode)</option>
-              </select>
-            </div>
-
-            {mode === 'live' && (
-              <div className="form-group animate-slide-down">
-                <label htmlFor="gemini-key">Google Gemini API Key</label>
-                <p className="form-help-text">
-                  Input your Gemini Developer API key to generate operations summaries and restock instructions. Stored securely on client storage.
-                </p>
-                <div className="input-with-icon" style={{ display: 'flex', gap: '8px' }}>
-                  <input
-                    id="gemini-key"
-                    type="password"
-                    placeholder="Enter API Key (AIzaSy...)"
-                    value={apiKey}
-                    onChange={(e) => {
-                      setApiKey(e.target.value);
-                      clearTestResult();
-                    }}
-                    className="settings-input"
-                    style={{ flex: 1 }}
-                  />
-                  <button
-                    type="button"
-                    onClick={handleTestConnection}
-                    disabled={testingConnection || !apiKey}
-                    className="btn-secondary flex-center gap-2"
-                    style={{ minWidth: '150px' }}
-                  >
-                    {testingConnection ? (
-                      <RefreshCw size={16} className="spin-icon" />
-                    ) : (
-                      <span>Test Connection</span>
-                    )}
-                  </button>
-                </div>
-
-                {testResult && (
-                  <div className={`connection-result-badge ${testResult.success ? "text-success" : "text-danger"}`} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', fontWeight: 600, marginTop: '4px' }}>
-                    {testResult.success ? <CheckCircle2 size={16} /> : <AlertTriangle size={16} />}
-                    <span>{testResult.message}</span>
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div className="form-actions">
-              <button type="submit" className="btn-primary">
-                <Save size={16} />
-                <span>Save Settings</span>
-              </button>
-
-              {savedSuccess && (
-                <div className="save-status-success">
-                  <CheckCircle2 size={16} />
-                  <span>Configured Successfully</span>
-                </div>
-              )}
-            </div>
-          </form>
         </section>
 
         {/* Demo Operations (Reset Onboarding) */}
