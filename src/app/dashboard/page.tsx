@@ -1,8 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { useRouter } from "next/navigation";
 import AppShell from "@/components/AppShell";
+import { useMedicines } from "@/hooks/useMedicines";
+import { useDoctors } from "@/hooks/useDoctors";
+import { useFootfall } from "@/hooks/useFootfall";
+import { useChecklist } from "@/hooks/useChecklist";
 import {
   Sparkles,
   AlertTriangle,
@@ -18,24 +22,31 @@ import {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [tasks, setTasks] = useState([
-    { id: 1, text: "Verify morning medicine stock registers", done: true },
-    { id: 2, text: "Reallocate staff for predicted Pediatric footfall surge", done: false },
-    { id: 3, text: "Review Doctor attendance and confirm leave schedules", done: false },
-    { id: 4, text: "Approve ORS urgent restock order", done: false },
-  ]);
-
-  const toggleTask = (id: number) => {
-    setTasks(
-      tasks.map((task) =>
-        task.id === id ? { ...task, done: !task.done } : task
-      )
-    );
-  };
+  
+  // Wire up state management hooks
+  const { stats: medStats, rawMedicines, loading: medLoading } = useMedicines();
+  const { stats: docStats, loading: docLoading } = useDoctors();
+  const { forecast, loading: footLoading } = useFootfall();
+  const { items: tasks, toggleItem, loading: checkLoading } = useChecklist();
 
   const handleGenerateBriefing = () => {
     router.push("/briefing");
   };
+
+  // Compute live values
+  const totalAlertItems = medStats.criticalCount + medStats.warningCount;
+  const alertSubtitle = rawMedicines
+    .filter(m => m.riskLevel === 'critical' || m.riskLevel === 'warning')
+    .slice(0, 2)
+    .map(m => m.name.split(" ")[0])
+    .join(", ") || "All stock adequate";
+
+  const coverageText = `${docStats.presentCount} / ${docStats.total} Present`;
+  const coverageSubtitle = docStats.coveragePercent === 100 
+    ? "Full staff allocation active" 
+    : `${docStats.coveragePercent}% coverage rostered`;
+
+  const checklistDoneCount = tasks.filter(t => t.completed).length;
 
   return (
     <AppShell>
@@ -50,7 +61,7 @@ export default function DashboardPage() {
             </div>
             <h1 className="hero-title">Daily Briefing & Forecast</h1>
             <p className="hero-description text-body-base">
-              Anticipating a 25% footfall increase in Pediatrics today. Medicine inventory shows critical alerts on ORS. Doctor attendance is fully covered.
+              {forecast?.aiRecommendation || "Loading recommendations..."}
             </p>
 
             <div className="hero-action-row">
@@ -73,14 +84,14 @@ export default function DashboardPage() {
         {/* 4 Statistics Cards Grid */}
         <section className="stats-grid">
           
-          <div className="stat-card glass-container">
+          <div className="stat-card glass-container" onClick={() => router.push("/medicines")} style={{ cursor: 'pointer' }}>
             <div className="stat-header">
               <span className="stat-icon-box status-err"><AlertTriangle size={18} /></span>
               <span className="text-label-caps">Medicine Alert</span>
             </div>
             <div className="stat-body">
-              <h2 className="stat-value">2 Items Low</h2>
-              <p className="stat-sub">ORS, Paracetamol 500mg</p>
+              <h2 className="stat-value">{medLoading ? "..." : `${totalAlertItems} Items Low`}</h2>
+              <p className="stat-sub">{medLoading ? "Calculating stock..." : alertSubtitle}</p>
             </div>
             <div className="stat-footer">
               <span>View Inventory</span>
@@ -88,14 +99,14 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="stat-card glass-container">
+          <div className="stat-card glass-container" onClick={() => router.push("/footfall")} style={{ cursor: 'pointer' }}>
             <div className="stat-header">
               <span className="stat-icon-box status-info"><TrendingUp size={18} /></span>
               <span className="text-label-caps">Footfall Forecast</span>
             </div>
             <div className="stat-body">
-              <h2 className="stat-value">120 Patients</h2>
-              <p className="stat-sub">+25% Pediatric surge expected</p>
+              <h2 className="stat-value">{footLoading ? "..." : `${forecast?.predictedCount || 0} Patients`}</h2>
+              <p className="stat-sub">{footLoading ? "Loading forecast..." : `Risk level: ${forecast?.riskLevel}`}</p>
             </div>
             <div className="stat-footer">
               <span>Analyze Trends</span>
@@ -103,14 +114,14 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="stat-card glass-container">
+          <div className="stat-card glass-container" onClick={() => router.push("/attendance")} style={{ cursor: 'pointer' }}>
             <div className="stat-header">
               <span className="stat-icon-box status-ok"><Users size={18} /></span>
               <span className="text-label-caps">Doctor Attendance</span>
             </div>
             <div className="stat-body">
-              <h2 className="stat-value">4 / 4 Present</h2>
-              <p className="stat-sub">Full staff allocation active</p>
+              <h2 className="stat-value">{docLoading ? "..." : coverageText}</h2>
+              <p className="stat-sub">{docLoading ? "Syncing roster..." : coverageSubtitle}</p>
             </div>
             <div className="stat-footer">
               <span>View Roster</span>
@@ -118,17 +129,17 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="stat-card glass-container">
+          <div className="stat-card glass-container" onClick={() => router.push("/briefing")} style={{ cursor: 'pointer' }}>
             <div className="stat-header">
               <span className="stat-icon-box status-warn"><Activity size={18} /></span>
               <span className="text-label-caps">Operational Risk</span>
             </div>
             <div className="stat-body">
-              <h2 className="stat-value">1 Risk Active</h2>
-              <p className="stat-sub">ORS stockout in &lt; 48 hours</p>
+              <h2 className="stat-value">{medLoading ? "..." : medStats.criticalCount > 0 ? "High Risk" : "Normal"}</h2>
+              <p className="stat-sub">{medLoading ? "Loading risks..." : medStats.criticalCount > 0 ? `${medStats.criticalCount} stockout warnings` : "Operations stable"}</p>
             </div>
             <div className="stat-footer">
-              <span>View Risk Matrix</span>
+              <span>View Briefing</span>
               <ChevronRight size={14} />
             </div>
           </div>
@@ -142,32 +153,50 @@ export default function DashboardPage() {
           <div className="panel-card glass-container">
             <div className="panel-header">
               <h3 className="panel-title">Operational Alerts</h3>
-              <span className="badge-alert-count">3 Active</span>
+              <span className="badge-alert-count">
+                {rawMedicines.filter(m => m.riskLevel === 'critical').length + (docStats.absentCount > 0 ? 1 : 0)} Active
+              </span>
             </div>
             <div className="panel-body">
-              <div className="alert-item alert-danger">
-                <span className="alert-dot"></span>
-                <div className="alert-content">
-                  <p className="alert-text"><strong>ORS Stock Critical:</strong> Inventory is less than 2 days coverage. Restock requested.</p>
-                  <span className="alert-time">10 mins ago</span>
+              {rawMedicines.filter(m => m.riskLevel === 'critical').map(m => (
+                <div key={m.id} className="alert-item alert-danger">
+                  <span className="alert-dot"></span>
+                  <div className="alert-content">
+                    <p className="alert-text"><strong>{m.name} Stock Critical:</strong> Inventory has only {m.daysRemaining} days remaining ({m.stock} units left).</p>
+                    <span className="alert-time">Just updated</span>
+                  </div>
                 </div>
-              </div>
+              ))}
 
-              <div className="alert-item alert-warning">
-                <span className="alert-dot"></span>
-                <div className="alert-content">
-                  <p className="alert-text"><strong>Staff Leave Scheduled:</strong> Dr. Amanda on leave tomorrow. General OPD coverage will be reduced.</p>
-                  <span className="alert-time">2 hours ago</span>
+              {docStats.absentCount > 0 && (
+                <div className="alert-item alert-warning">
+                  <span className="alert-dot"></span>
+                  <div className="alert-content">
+                    <p className="alert-text"><strong>Staff Leave/Absenteeism:</strong> {docStats.absentCount} doctor(s) rostered are currently absent/leave.</p>
+                    <span className="alert-time">Roster status alert</span>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              <div className="alert-item alert-success">
-                <span className="alert-dot"></span>
-                <div className="alert-content">
-                  <p className="alert-text"><strong>Attendance Cleared:</strong> All 4 doctors logged in successfully for the morning shift.</p>
-                  <span className="alert-time">3 hours ago</span>
+              {rawMedicines.filter(m => m.riskLevel === 'warning').map(m => (
+                <div key={m.id} className="alert-item alert-warning">
+                  <span className="alert-dot"></span>
+                  <div className="alert-content">
+                    <p className="alert-text"><strong>{m.name} Stock Warning:</strong> Reorder threshold breached. Only {m.daysRemaining} days remaining.</p>
+                    <span className="alert-time">Just updated</span>
+                  </div>
                 </div>
-              </div>
+              ))}
+
+              {totalAlertItems === 0 && docStats.absentCount === 0 && (
+                <div className="alert-item alert-success">
+                  <span className="alert-dot"></span>
+                  <div className="alert-content">
+                    <p className="alert-text"><strong>All Systems Clear:</strong> Medicine stocks adequate and staff fully allocated.</p>
+                    <span className="alert-time">Live status</span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -176,7 +205,7 @@ export default function DashboardPage() {
             <div className="panel-header">
               <h3 className="panel-title">Daily Action Checklist</h3>
               <span className="text-caption">
-                {tasks.filter(t => t.done).length} of {tasks.length} done
+                {checkLoading ? "..." : `${checklistDoneCount} of ${tasks.length} done`}
               </span>
             </div>
             <div className="panel-body">
@@ -184,11 +213,11 @@ export default function DashboardPage() {
                 {tasks.map((task) => (
                   <div
                     key={task.id}
-                    className={`checklist-item ${task.done ? "checklist-item-done" : ""}`}
-                    onClick={() => toggleTask(task.id)}
+                    className={`checklist-item ${task.completed ? "checklist-item-done" : ""}`}
+                    onClick={() => toggleItem(task.id)}
                   >
                     <div className="checkbox-box flex-center">
-                      {task.done && <CheckSquare size={16} className="checkbox-icon" />}
+                      {task.completed && <CheckSquare size={16} className="checkbox-icon" />}
                     </div>
                     <span className="checklist-text">{task.text}</span>
                   </div>

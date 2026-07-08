@@ -166,7 +166,15 @@ All API Route Handler functions are async/await. Client hooks handle loading sta
 
 **Tracing Tool:** Arize Phoenix / console logger.
 
-**Key Metrics to Track:**
+**Key Metrics to Track:**omain context researched (healthcare vertical, stakes, expert criteria, failure modes)
+- [x] Regulatory/compliance context identified
+- [x] Domain expert roles defined for evaluation involvement
+- [x] Framework selected with rationale documented
+- [x] Alternatives considered and ruled out
+- [x] Framework quick reference written (install, imports, pattern, pitfalls)
+- [x] AI-SPEC.md validated (non-empty structures)
+- [x] Committed if commit_docs enabled
+- [x] Next step surfaced to 
 - Latency (target < 3 seconds)
 - API error rate (target 0%)
 - JSON parsing failure rate (target 0%)
@@ -177,12 +185,4 @@ All API Route Handler functions are async/await. Client hooks handle loading sta
 
 - [x] System type classified
 - [x] Critical failure modes identified (≥ 3)
-- [x] Domain context researched (healthcare vertical, stakes, expert criteria, failure modes)
-- [x] Regulatory/compliance context identified
-- [x] Domain expert roles defined for evaluation involvement
-- [x] Framework selected with rationale documented
-- [x] Alternatives considered and ruled out
-- [x] Framework quick reference written (install, imports, pattern, pitfalls)
-- [x] AI-SPEC.md validated (non-empty structures)
-- [x] Committed if commit_docs enabled
-- [x] Next step surfaced to user
+- [x] Duser

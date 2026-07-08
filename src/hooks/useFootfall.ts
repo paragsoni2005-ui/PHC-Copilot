@@ -133,13 +133,67 @@ export function useFootfall() {
       capacity: 15 // Standard threshold capacity
     }));
 
-    // Calculate a dynamic forecast
-    const totalPatientsPastWeek = allPatients.length;
-    const avgDailyPatients = Math.round(totalPatientsPastWeek / 8) || 12;
-    
-    // Add small random fluctuation for forecast realism
-    const predictedCount = avgDailyPatients + Math.floor((Math.sin(Date.now() / 100000) * 3));
-    
+    // Calculate a deterministic, data-driven forecast
+    const patientsByDate: Record<string, number> = {};
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowDow = tomorrow.getDay(); // 0 = Sunday, 1 = Monday, etc.
+
+    const uniqueDowDates = new Set<string>();
+    let dowTotal = 0;
+
+    allPatients.forEach(p => {
+      const regDate = new Date(p.registeredAt);
+      const dateStr = regDate.toISOString().split('T')[0];
+      patientsByDate[dateStr] = (patientsByDate[dateStr] || 0) + 1;
+      
+      if (regDate.getDay() === tomorrowDow) {
+        uniqueDowDates.add(dateStr);
+        dowTotal++;
+      }
+    });
+
+    // Extract last 7 days history
+    const last7DaysCounts: number[] = [];
+    let last7DaysTotal = 0;
+    for (let i = 1; i <= 7; i++) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().split('T')[0];
+      const count = patientsByDate[dateStr] || 0;
+      last7DaysCounts.push(count);
+      last7DaysTotal += count;
+    }
+    last7DaysCounts.reverse(); // Now ordered: oldest to newest (Day -7 to Day -1)
+
+    // 1. 7-day Historical Average (45%)
+    const baseAvg = last7DaysTotal / 7;
+
+    // 2. Recent Trend (last 3 days) (25%)
+    const dayMinus3 = last7DaysCounts[4];
+    const dayMinus2 = last7DaysCounts[5];
+    const dayMinus1 = last7DaysCounts[6];
+
+    let growth1 = dayMinus3 > 0 ? (dayMinus2 - dayMinus3) / dayMinus3 : 0;
+    let growth2 = dayMinus2 > 0 ? (dayMinus1 - dayMinus2) / dayMinus2 : 0;
+    growth1 = Math.max(-0.5, Math.min(0.5, growth1));
+    growth2 = Math.max(-0.5, Math.min(0.5, growth2));
+    const avgGrowth = (growth1 + growth2) / 2;
+    const trendValue = baseAvg * (1 + avgGrowth);
+
+    // 3. Day-of-week adjustment (15%)
+    const dowAvg = uniqueDowDates.size > 0 ? dowTotal / uniqueDowDates.size : baseAvg;
+
+    // 4. Seasonal/event adjustment (Base for now) (5%)
+    const seasonalValue = baseAvg;
+
+    // 5. Safety adjustment (Buffer) (10%)
+    const safetyValue = baseAvg * 1.1;
+
+    // Final deterministic formula
+    const predictedFloat = (baseAvg * 0.45) + (trendValue * 0.25) + (dowAvg * 0.15) + (seasonalValue * 0.05) + (safetyValue * 0.10);
+    const predictedCount = Math.round(predictedFloat);
+
     // Peak time detection
     let peakHour = "10:00 AM - 12:00 PM";
     let maxLoad = 0;
@@ -153,21 +207,69 @@ export function useFootfall() {
       }
     });
 
-    const riskLevel = predictedCount > 25 ? "High" : predictedCount > 12 ? "Medium" : "Low";
+    // Operational Risk (Clinic capacity: 40 patients/day)
+    const clinicCapacity = 40;
+    const utilization = predictedCount / clinicCapacity;
     
-    // Construct recommendation reasoning
-    let aiRecommendation = `We project ${predictedCount} patients tomorrow. General OPD load remains stable.`;
-    if (deptCounts["Pediatrics"] > deptCounts["General OPD"] * 0.6) {
-      aiRecommendation = `Pediatric caseload spikes detected. Expect surges tomorrow around ${peakHour}. Ensure pediatric rosters are fully covered.`;
-    } else if (riskLevel === "High") {
-      aiRecommendation = `High patient surge predicted tomorrow. Open second intake desk at ${peakHour} to keep patient wait times under 15 minutes.`;
+    let riskLevel = "Low";
+    if (utilization >= 1.38) {
+      riskLevel = "Critical";
+    } else if (utilization >= 1.05) {
+      riskLevel = "High";
+    } else if (utilization >= 0.80) {
+      riskLevel = "Medium";
+    }
+
+    // Forecast Confidence
+    let confidenceScore = 0;
+    const daysWithData = last7DaysCounts.filter(c => c > 0).length;
+    if (daysWithData === 7) confidenceScore += 25;
+    else confidenceScore += Math.round((daysWithData / 7) * 25);
+
+    if (allPatients.length >= 100) confidenceScore += 25;
+    else confidenceScore += Math.round((allPatients.length / 100) * 25);
+
+    if (Math.abs(avgGrowth) <= 0.15) confidenceScore += 20;
+    else if (Math.abs(avgGrowth) <= 0.30) confidenceScore += 10;
+    else confidenceScore += 5;
+
+    if (uniqueDowDates.size > 0) confidenceScore += 15;
+
+    const todayCount = Object.values(hourlyCounts).reduce((a, b) => a + b, 0);
+    if (todayCount > 0) confidenceScore += 15;
+
+    confidenceScore = Math.min(100, confidenceScore);
+
+    // AI Recommendation
+    let aiRecommendation = `We project ${predictedCount} patients tomorrow. `;
+    if (riskLevel === "High" || riskLevel === "Critical") {
+      aiRecommendation += `Deploy an additional registration desk between ${peakHour}. `;
+    } else if (riskLevel === "Low") {
+      aiRecommendation += `Current staffing is sufficient. No operational changes required. `;
+    } else {
+       aiRecommendation += `Moderate load expected. Monitor queue times during peak hours. `;
+    }
+
+    // Symptom Alerts
+    const feverCount = allPatients.filter(p => p.symptoms?.includes("Fever")).length;
+    const coughCount = allPatients.filter(p => p.symptoms?.includes("Cough")).length;
+    const feverPct = feverCount / (allPatients.length || 1);
+    const coughPct = coughCount / (allPatients.length || 1);
+
+    if (feverPct > 0.5 || coughPct > 0.4) {
+      aiRecommendation += `High symptom incidence detected. Increase Paracetamol and ORS availability. `;
+    }
+
+    if (deptCounts["Pediatrics"] > deptCounts["General OPD"] * 0.5) {
+      aiRecommendation += `Ensure pediatric medicines are fully stocked.`;
     }
 
     const fc: FootfallForecast = {
       predictedCount,
       peakTime: peakHour,
       riskLevel,
-      aiRecommendation
+      aiRecommendation,
+      confidenceScore
     };
 
     setHistoricalData(hist);

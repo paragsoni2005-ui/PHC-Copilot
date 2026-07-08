@@ -5,6 +5,7 @@ export interface FootfallForecast {
   peakTime: string;
   riskLevel: string;
   aiRecommendation: string;
+  confidenceScore?: number;
 }
 
 export interface DepartmentPatients {

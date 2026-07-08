@@ -12,8 +12,7 @@ import {
   Settings,
   Sparkles,
   User,
-  LogOut,
-  ClipboardList
+  LogOut
 } from "lucide-react";
 
 interface AppShellProps {
@@ -44,7 +43,6 @@ export default function AppShell({ children }: AppShellProps) {
   // Construct unified navigation links for all features
   const navItems = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { name: "OPD Intake", href: "/opd-registration", icon: ClipboardList },
     { name: "Briefing", href: "/briefing", icon: Sparkles },
     { name: "Medicines", href: "/medicines", icon: Pill },
     { name: "Footfall", href: "/footfall", icon: TrendingUp },
@@ -52,9 +50,9 @@ export default function AppShell({ children }: AppShellProps) {
     { name: "Settings", href: "/settings", icon: Settings },
   ];
 
-  const profileName = "Staff";
-  const profileRole = "Clinic Operations";
-  const greetingHeader = pathname === "/opd-registration" ? "OPD Registration Desk" : "Good Morning, Doctor";
+  const profileName = "Dr. Copilot";
+  const profileRole = "Medical Officer";
+  const greetingHeader = "Good Morning, Doctor";
 
   return (
     <div className="app-shell-layout">

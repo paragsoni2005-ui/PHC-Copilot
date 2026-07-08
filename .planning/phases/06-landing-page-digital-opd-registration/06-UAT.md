@@ -1,16 +1,19 @@
 ---
-status: complete
+status: testing
 phase: 06-landing-page-digital-opd-registration
 source:
   - 01-PLAN.md
   - 02-PLAN.md
 started: 2026-07-07T15:40:00Z
-updated: 2026-07-07T16:15:00Z
+updated: 2026-07-08T09:07:39Z
 ---
 
 ## Current Test
-
-[ready for verification]
+number: 3
+name: Client-Side Route Guards
+expected: |
+  Logged-in Receptionists trying to access `/dashboard`, `/medicines`, or `/attendance` are redirected back or blocked. Logged-in Medical Officers trying to edit/delete items on `/opd-registration` are prevented from doing so. Unauthenticated guests trying to access any internal route are redirected to `/`.
+awaiting: user response
 
 ## Tests
 
@@ -26,34 +29,34 @@ result: pass
 
 ### 3. Client-Side Route Guards
 expected: Logged-in Receptionists trying to access `/dashboard`, `/medicines`, or `/attendance` are redirected back or blocked. Logged-in Medical Officers trying to edit/delete items on `/opd-registration` are prevented from doing so. Unauthenticated guests trying to access any internal route are redirected to `/`.
-result: pass
+result: pending
 
 ### 4. Digital OPD Patient Registration
 expected: Submitting the OPD intake form with valid fields (Age, Gender, Department, Symptoms, Visit Type, Village) saves the record to the `patients` Firestore collection and immediately appends it to the Today's Registrations table. Submitting with invalid fields highlights errors.
-result: pass
+result: pending
 
 ### 5. Live Table Filters and Search
 expected: Typing in the registrations search box filters rows dynamically by ID, Name, or Symptoms. Selecting filter drop-downs (Gender, Visit Type, Department) updates table rows instantly.
-result: pass
+result: pending
 
 ### 6. Live Dashboard Count Updates
 expected: With the dashboard open in Tab A and the OPD registration open in Tab B, registering a new patient in Tab B immediately increments the "Today's Patients" count on the Tab A dashboard without page refresh.
-result: pass
+result: pending
 
 ### 7. Dynamic Footfall charts and Gemini surge forecast
 expected: The Patient Footfall analytics charts display dynamic historical aggregations loaded from seeded patients. Generative briefings reference the actual symptoms and departments registered.
-result: pass
+result: pending
 
 ### 8. Next.js Production Build compiler check
 expected: Running `npm run build` compiles the Next.js application with zero TypeScript warnings or Turbopack errors.
-result: pass
+result: pending
 
 ## Summary
 
 total: 8
-passed: 8
+passed: 2
 issues: 0
-pending: 0
+pending: 6
 skipped: 0
 
 ## Gaps

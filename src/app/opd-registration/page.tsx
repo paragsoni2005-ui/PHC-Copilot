@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import AppShell from "@/components/AppShell";
+import ReceptionistShell from "@/components/ReceptionistShell";
 import { usePatients } from "@/hooks/usePatients";
 import { useAuth } from "@/context/AuthContext";
 import { Patient } from "@/types/store";
@@ -133,7 +133,7 @@ export default function OPDRegistrationPage() {
   };
 
   return (
-    <AppShell>
+    <ReceptionistShell>
       <div className="opd-layout animate-fade-in">
         <div className="page-header">
           <div className="header-meta">
@@ -903,6 +903,6 @@ export default function OPDRegistrationPage() {
           }
         }
       `}</style>
-    </AppShell>
+    </ReceptionistShell>
   );
 }

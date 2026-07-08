@@ -2,12 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import AppShell from "@/components/AppShell";
-import {
-  mockFootfallHistory,
-  mockDepartmentBreakdown,
-  mockHourlyLoad,
-  mockFootfallForecast,
-} from "@/mocks/footfall";
+import { useFootfall } from "@/hooks/useFootfall";
 import {
   TrendingUp,
   Clock,
@@ -16,6 +11,7 @@ import {
   BarChart2,
   LineChart as LineIcon,
   Calendar,
+  RefreshCw
 } from "lucide-react";
 
 // Dynamically import recharts components on client-side
@@ -37,10 +33,22 @@ import {
 
 export default function FootfallPage() {
   const [mounted, setMounted] = useState(false);
+  const { historicalData, departmentData, hourlyLoad, forecast, loading } = useFootfall();
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  if (loading) {
+    return (
+      <AppShell>
+        <div className="footfall-container animate-fade-in flex-center" style={{ minHeight: '400px', flexDirection: 'column' }}>
+          <RefreshCw size={24} className="spin-icon text-clinical-teal" />
+          <p style={{ marginTop: '12px', color: 'var(--color-outline)' }}>Loading analytics data...</p>
+        </div>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell>
@@ -54,43 +62,50 @@ export default function FootfallPage() {
         </div>
 
         {/* Prediction Hero Panel */}
-        <section className="forecast-section glass-container glow-pulsing-subtle">
-          <div className="forecast-content">
-            <div className="badge-ai-sparkle">
-              <Sparkles size={16} className="sparkle-icon" />
-              <span>Gemini Operational Forecast</span>
-            </div>
-            <h2 className="forecast-title">OPD Surge Prediction (Tomorrow)</h2>
+        {forecast && (
+          <section className="forecast-section glass-container glow-pulsing-subtle">
+            <div className="forecast-content">
+              <div className="badge-ai-sparkle">
+                <Sparkles size={16} className="sparkle-icon" />
+                <span>Gemini Operational Forecast</span>
+              </div>
+              <h2 className="forecast-title">OPD Surge Prediction (Tomorrow)</h2>
 
-            <div className="forecast-metrics-row">
-              <div className="metric-item">
-                <span className="metric-label">Predicted Patients</span>
-                <span className="metric-value text-primary">{mockFootfallForecast.predictedCount}</span>
-                <span className="metric-change text-err">▲ +25% vs Avg</span>
+              <div className="forecast-metrics-row">
+                <div className="metric-item">
+                  <span className="metric-label">Predicted Patients</span>
+                  <span className="metric-value text-primary">{forecast.predictedCount}</span>
+                </div>
+                <div className="metric-item">
+                  <span className="metric-label">Expected Peak</span>
+                  <span className="metric-value text-clinical-teal flex-center gap-1">
+                    <Clock size={20} />
+                    <span>{forecast.peakTime}</span>
+                  </span>
+                </div>
+                <div className="metric-item">
+                  <span className="metric-label">Operational Risk</span>
+                  <span className={`metric-badge risk-${forecast.riskLevel}`}>
+                    {forecast.riskLevel.toUpperCase()}
+                  </span>
+                </div>
+                <div className="metric-item">
+                  <span className="metric-label">Forecast Confidence</span>
+                  <span className="metric-value flex-center gap-1">
+                    <span>{forecast.confidenceScore ?? 0}%</span>
+                  </span>
+                </div>
               </div>
-              <div className="metric-item">
-                <span className="metric-label">Expected Peak</span>
-                <span className="metric-value text-clinical-teal flex-center gap-1">
-                  <Clock size={20} />
-                  <span>{mockFootfallForecast.peakTime}</span>
-                </span>
-              </div>
-              <div className="metric-item">
-                <span className="metric-label">Operational Risk</span>
-                <span className={`metric-badge risk-${mockFootfallForecast.riskLevel}`}>
-                  {mockFootfallForecast.riskLevel.toUpperCase()}
-                </span>
-              </div>
-            </div>
 
-            <div className="forecast-recommendation bg-teal-container">
-              <span className="rec-icon-box"><AlertTriangle size={16} /></span>
-              <p className="rec-text text-body-sm">
-                <strong>AI Action recommendation:</strong> {mockFootfallForecast.aiRecommendation}
-              </p>
+              <div className="forecast-recommendation bg-teal-container">
+                <span className="rec-icon-box"><AlertTriangle size={16} /></span>
+                <p className="rec-text text-body-sm">
+                  <strong>AI Action recommendation:</strong> {forecast.aiRecommendation}
+                </p>
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
+        )}
 
         {/* Charts Grid */}
         <section className="charts-grid">
@@ -105,7 +120,7 @@ export default function FootfallPage() {
             <div className="chart-body">
               {mounted ? (
                 <ResponsiveContainer width="100%" height={260}>
-                  <LineChart data={mockFootfallHistory} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <LineChart data={historicalData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
                     <XAxis dataKey="date" stroke="var(--color-outline)" fontSize={11} tickLine={false} />
                     <YAxis stroke="var(--color-outline)" fontSize={11} tickLine={false} />
@@ -144,7 +159,7 @@ export default function FootfallPage() {
             <div className="chart-body">
               {mounted ? (
                 <ResponsiveContainer width="100%" height={260}>
-                  <BarChart data={mockDepartmentBreakdown} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <BarChart data={departmentData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
                     <XAxis dataKey="name" stroke="var(--color-outline)" fontSize={11} tickLine={false} />
                     <YAxis stroke="var(--color-outline)" fontSize={11} tickLine={false} />
@@ -157,7 +172,7 @@ export default function FootfallPage() {
                       }}
                     />
                     <Bar dataKey="patients" radius={[6, 6, 0, 0]}>
-                      {mockDepartmentBreakdown.map((entry, index) => (
+                      {departmentData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Bar>
@@ -180,7 +195,7 @@ export default function FootfallPage() {
             <div className="chart-body">
               {mounted ? (
                 <ResponsiveContainer width="100%" height={280}>
-                  <AreaChart data={mockHourlyLoad} margin={{ top: 15, right: 15, left: -20, bottom: 0 }}>
+                  <AreaChart data={hourlyLoad} margin={{ top: 15, right: 15, left: -20, bottom: 0 }}>
                     <defs>
                       <linearGradient id="colorLoad" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="var(--color-clinical-teal)" stopOpacity={0.4} />

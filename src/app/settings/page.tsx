@@ -3,41 +3,53 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import AppShell from "@/components/AppShell";
+import { useSettings } from "@/hooks/useSettings";
 import {
   Save,
   RotateCcw,
   Key,
   User,
   Shield,
-  Palette,
-  CheckCircle2
+  CheckCircle2,
+  RefreshCw,
+  AlertTriangle
 } from "lucide-react";
 
 export default function SettingsPage() {
+  const router = useRouter();
+  const { settings, loading, testingConnection, testResult, updateSettings, testConnection, clearTestResult } = useSettings();
   const [apiKey, setApiKey] = useState("");
+  const [mode, setMode] = useState<'mock' | 'live'>("mock");
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [isDemoReset, setIsDemoReset] = useState(false);
-  const router = useRouter();
 
-  // Load API key from localStorage on mount
+  // Sync state when hook loaded
   useEffect(() => {
-    const key = localStorage.getItem("gemini_api_key");
-    if (key) {
-      setApiKey(key);
+    if (!loading) {
+      setApiKey(settings.apiKey);
+      setMode(settings.mode);
     }
-  }, []);
+  }, [settings, loading]);
 
-  const handleSaveKey = (e: React.FormEvent) => {
+  const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
-    localStorage.setItem("gemini_api_key", apiKey);
+    await updateSettings({ mode, apiKey });
     setSavedSuccess(true);
     setTimeout(() => {
       setSavedSuccess(false);
     }, 3000);
   };
 
+  const handleTestConnection = async () => {
+    await testConnection(apiKey);
+  };
+
   const handleResetDemo = () => {
     localStorage.removeItem("phc_first_visit_complete");
+    localStorage.removeItem("phc_checklist");
+    localStorage.removeItem("phc_medicines");
+    localStorage.removeItem("phc_doctors");
+    localStorage.removeItem("phc_settings");
     setIsDemoReset(true);
     setTimeout(() => {
       router.push("/");
@@ -77,28 +89,74 @@ export default function SettingsPage() {
             <Key size={18} className="header-icon" />
             <h3>API Configuration</h3>
           </div>
-          <form onSubmit={handleSaveKey} className="settings-form">
+          <form onSubmit={handleSaveSettings} className="settings-form">
             <div className="form-group">
-              <label htmlFor="gemini-key">Google Gemini API Key</label>
+              <label htmlFor="api-mode">Intelligence Provider Mode</label>
               <p className="form-help-text">
-                Input your Gemini API key to enable operational briefing generation and inventory shortage predictions. Keys are stored safely on your browser local storage.
+                Select between fully simulated offline mock briefings or connecting to Google Cloud Gemini API for real-time live synthesis.
               </p>
-              <div className="input-with-icon">
-                <input
-                  id="gemini-key"
-                  type="password"
-                  placeholder="Enter API Key (AIzaSy...)"
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                  className="settings-input"
-                />
-              </div>
+              <select
+                id="api-mode"
+                value={mode}
+                onChange={(e) => {
+                  setMode(e.target.value as 'mock' | 'live');
+                  clearTestResult();
+                }}
+                className="settings-input"
+                style={{ padding: '8px 12px' }}
+              >
+                <option value="mock">Local Simulator (Offline Mode)</option>
+                <option value="live">Google Gemini Live (API Mode)</option>
+              </select>
             </div>
+
+            {mode === 'live' && (
+              <div className="form-group animate-slide-down">
+                <label htmlFor="gemini-key">Google Gemini API Key</label>
+                <p className="form-help-text">
+                  Input your Gemini Developer API key to generate operations summaries and restock instructions. Stored securely on client storage.
+                </p>
+                <div className="input-with-icon" style={{ display: 'flex', gap: '8px' }}>
+                  <input
+                    id="gemini-key"
+                    type="password"
+                    placeholder="Enter API Key (AIzaSy...)"
+                    value={apiKey}
+                    onChange={(e) => {
+                      setApiKey(e.target.value);
+                      clearTestResult();
+                    }}
+                    className="settings-input"
+                    style={{ flex: 1 }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleTestConnection}
+                    disabled={testingConnection || !apiKey}
+                    className="btn-secondary flex-center gap-2"
+                    style={{ minWidth: '150px' }}
+                  >
+                    {testingConnection ? (
+                      <RefreshCw size={16} className="spin-icon" />
+                    ) : (
+                      <span>Test Connection</span>
+                    )}
+                  </button>
+                </div>
+
+                {testResult && (
+                  <div className={`connection-result-badge ${testResult.success ? "text-success" : "text-danger"}`} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', fontWeight: 600, marginTop: '4px' }}>
+                    {testResult.success ? <CheckCircle2 size={16} /> : <AlertTriangle size={16} />}
+                    <span>{testResult.message}</span>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="form-actions">
               <button type="submit" className="btn-primary">
                 <Save size={16} />
-                <span>Save API Key</span>
+                <span>Save Settings</span>
               </button>
 
               {savedSuccess && (

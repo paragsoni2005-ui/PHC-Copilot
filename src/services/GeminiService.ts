@@ -43,7 +43,7 @@ export class GeminiService {
     }
   }
 
-  static async generateBriefing(apiKey: string, medicines: any[], doctors: any[], footfall: any): Promise<any> {
+  static async generateBriefing(apiKey: string, medicines: any[], doctors: any[], footfall: any, recentPatients?: any[]): Promise<any> {
     const prompt = `
 You are an expert Chief Medical Officer and Clinic Operations Analyst.
 Analyze the following operational data for a Primary Health Centre (PHC) and generate a synthesized daily briefing.
@@ -53,12 +53,13 @@ DATA:
 - Medicines Inventory: ${JSON.stringify(medicines)}
 - Doctor Attendance Roster: ${JSON.stringify(doctors)}
 - Patient Footfall predictions/data: ${JSON.stringify(footfall)}
+${recentPatients ? `- Recent Patient Symptoms & Intake logs (Last 7 days): ${JSON.stringify(recentPatients)}` : ""}
 
 INSTRUCTIONS:
 1. Provide a concise introductory summary greeting.
 2. In the Inventory section, identify critical stockouts (< 3 days remaining) or warning items (3-7 days remaining). Explain daily usage rates and specify when stock will run out.
 3. In the Roster section, evaluate staffing coverage. Identify absent/on leave doctors and recommend coverage/reallocation.
-4. In the Patient Surge section, detail predicted patient counts, workload risk levels (e.g. peak hours), and recommend desk/triage adjustments.
+4. In the Patient Surge section, detail predicted patient counts, workload risk levels (e.g. peak hours), and recommend desk/desk triage adjustments. If there are recent patient logs, analyze common symptoms and highlight potential seasonal surges or disease trends.
 5. Provide a confidence score (0-100) indicating alignment with historical patterns.
 6. Provide distinct reasoning points for your predictions.
 
