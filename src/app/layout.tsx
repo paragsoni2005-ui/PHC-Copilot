@@ -6,6 +6,9 @@ import { ToastProvider } from "@/context/ToastContext";
 export const metadata: Metadata = {
   title: "PHC Copilot - AI Operations Assistant",
   description: "AI-powered operational decision support system for Primary Health Centres. Anticipate patient surges, manage medicine inventory, and optimize daily staff allocation.",
+  icons: {
+    icon: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({
