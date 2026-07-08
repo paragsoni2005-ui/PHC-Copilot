@@ -162,21 +162,8 @@ export default function BriefingPage() {
               </div>
             </section>
 
-            {/* Side column: Confidence and Accordion Reasoning */}
+            {/* Side column: Accordion Reasoning */}
             <div className="side-column">
-              {/* Confidence Circle Card */}
-              <div className="confidence-card glass-container flex-center flex-col">
-                <h3 className="side-card-title">Recommendation Confidence</h3>
-                <div className="dial-wrapper">
-                  <svg className="progress-ring" width="120" height="120">
-                    <circle className="progress-ring-bg" stroke="var(--color-surface-container-highest)" strokeWidth="8" fill="transparent" r="50" cx="60" cy="60"/>
-                    <circle className="progress-ring-fill" stroke="var(--color-clinical-teal)" strokeDasharray="314.159" strokeDashoffset={314.159 * (1 - confidence / 100)} strokeWidth="8" fill="transparent" r="50" cx="60" cy="60"/>
-                  </svg>
-                  <div className="dial-value">{confidence}%</div>
-                </div>
-                <p className="dial-sub">Confidence score based on operational data match</p>
-              </div>
-
               {/* "Why this recommendation?" reasoning accordion */}
               <div className="accordion-card glass-container">
                 <button
