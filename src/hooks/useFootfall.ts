@@ -83,9 +83,6 @@ export function useFootfall() {
       const dateStr = regDate.toLocaleDateString("en-US", { month: "short", day: "numeric" });
       if (dateStr in dailyCounts) {
         dailyCounts[dateStr]++;
-      } else {
-        // Fallback for dates beyond 7 days
-        dailyCounts[dateStr] = 1;
       }
 
       // Aggregate department breakdown (all-time/historical)
